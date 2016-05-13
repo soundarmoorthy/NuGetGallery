@@ -8,8 +8,8 @@
         }
     }
     <li class="@classes["Home"]"><a href="@Url.Home()">Home</a></li>
-    <li class="@classes["Packages"]"><a href="@Url.PackageList()">Packages</a></li>
-    <li class="@classes["Upload"]"><a href="@Url.UploadPackage()" class="upload">Upload Package</a></li>
+    <li class="@classes["Packages"]"><a href="@Url.PackageList()">Extensions</a></li>
+    <li class="@classes["Upload"]"><a href="@Url.UploadPackage()" class="upload">Upload Extension</a></li>
     @if (StatisticsHelper.IsStatisticsPageAvailable)
     {
         <li class="@classes["Statistics"]"><a href="@Url.Statistics()">Statistics</a></li>
@@ -18,7 +18,7 @@
     {
         <li class="@classes["Admin"]"><a href="@Url.Action("Index", "Home", new { area="Admin" })">Admin</a></li>
     }
-    <li><a href="https://docs.nuget.org">Documentation</a></li>
-    <li><a href="/downloads">Downloads</a></li>
-    <li><a href="http://blog.nuget.org">Blog</a></li>
+
+    <li><a href="/downloads">Partner Page</a></li>
+    <li><a href="http://atmel.com/webdoc">Documentation</a></li>
 </ul>
