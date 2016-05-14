@@ -1822,6 +1822,10 @@
       <Project>{097b2cdd-9623-4c34-93c2-d373d51f5b4e}</Project>
       <Name>NuGetGallery.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\VsixReader\VsixReader.csproj">
+      <Project>{c4b5f3c8-92d4-410b-94f1-cc93a9f6cf21}</Project>
+      <Name>VsixReader</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
