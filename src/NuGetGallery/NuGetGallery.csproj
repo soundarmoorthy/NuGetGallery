@@ -641,6 +641,7 @@
     <Compile Include="Areas\Admin\ViewModels\SupportRequestViewModel.cs" />
     <Compile Include="Authentication\FeedOnlyModeException.cs" />
     <Compile Include="Controllers\NuGetContext.cs" />
+    <Compile Include="Controllers\VsixNuspecAdapter.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Controllers\ODataV1FeedController.cs" />
     <Compile Include="Controllers\ODataV2CuratedFeedController.cs" />
@@ -679,6 +680,7 @@
     <Compile Include="Controllers\AppController.cs" />
     <Compile Include="Controllers\ErrorsController.cs" />
     <Compile Include="Controllers\PagesController.cs" />
+    <Compile Include="FileStreamInfo.cs" />
     <Compile Include="Migrations\201602181939424_RemovePackageStatistics.cs" />
     <Compile Include="Migrations\201602181939424_RemovePackageStatistics.Designer.cs">
       <DependentUpon>201602181939424_RemovePackageStatistics.cs</DependentUpon>
@@ -1822,9 +1824,9 @@
       <Project>{097b2cdd-9623-4c34-93c2-d373d51f5b4e}</Project>
       <Name>NuGetGallery.Core</Name>
     </ProjectReference>
-    <ProjectReference Include="..\VsixReader\VsixReader.csproj">
+    <ProjectReference Include="..\VsixReader\VsixParser.csproj">
       <Project>{c4b5f3c8-92d4-410b-94f1-cc93a9f6cf21}</Project>
-      <Name>VsixReader</Name>
+      <Name>VsixParser</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>

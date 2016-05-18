@@ -15,6 +15,11 @@ namespace NuGetGallery.Packaging
         private readonly IReadOnlyCollection<PackageDependencyGroup> _dependencyGroups;
         private readonly IReadOnlyCollection<FrameworkSpecificGroup> _frameworkReferenceGroups;
 
+	internal PackageMetadata()
+        {
+
+        }
+
         public PackageMetadata(
             Dictionary<string, string> metadata,
             IEnumerable<PackageDependencyGroup> dependencyGroups, 
@@ -29,11 +34,30 @@ namespace NuGetGallery.Packaging
             MinClientVersion = minClientVersion;
         }
 
+
+        public static readonly string IdTag = "id";
+        public static readonly string VersionTag = "version";
+
+        public static readonly string IconUrlTag = "iconUrl";
+        public static readonly string projectUrlTag = "projectUrl";
+        public static readonly string licenseUrlTag = "licenseUrl";
+        public static readonly string copyrightTag = "copyright";
+        public static readonly string descriptionTag = "description";
+        public static readonly string releaseNotesTag = "releaseNotes";
+        public static readonly string requireLicenseAcceptanceTag = "reaquireLicenseAcceptance";
+        public static readonly string summaryTag = "summary";
+        public static readonly string titleTag = "title";
+        public static readonly string tagsTag = "tags";
+        public static readonly string languagesTag = "tags";
+        public static readonly string ownersTag = "owners";
+        public static readonly string commaseparatedAuthorsTag ="authors";
+
+
         private void SetPropertiesFromMetadata()
         {
-            Id = GetValue("id", string.Empty);
+            Id = GetValue(IdTag, string.Empty);
 
-            var versionString = GetValue("version", string.Empty);
+            var versionString = GetValue(VersionTag, string.Empty);
             if (versionString.IndexOf('.') < 0)
             {
                 throw new FormatException(string.Format(Strings.PackageMetadata_VersionStringInvalid, versionString));
@@ -45,7 +69,7 @@ namespace NuGetGallery.Packaging
                 Version = nugetVersion;
             }
 
-            IconUrl = GetValue("iconUrl", (Uri) null);
+            IconUrl = GetValue(IconUrlTag, (Uri) null);
             ProjectUrl = GetValue("projectUrl", (Uri) null);
             LicenseUrl = GetValue("licenseUrl", (Uri) null);
             Copyright = GetValue("copyright", (string) null);

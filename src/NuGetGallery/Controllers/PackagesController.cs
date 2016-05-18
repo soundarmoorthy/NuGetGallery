@@ -25,6 +25,7 @@ using NuGetGallery.Infrastructure.Lucene;
 using NuGetGallery.OData;
 using NuGetGallery.Packaging;
 using PoliteCaptcha;
+using VSIXParser;
 
 namespace NuGetGallery
 {
@@ -188,95 +189,56 @@ namespace NuGetGallery
                 return View();
             }
 
-            if (!Path.GetExtension(uploadFile.FileName).Equals(Constants.NuGetPackageFileExtension, StringComparison.OrdinalIgnoreCase))
+            if (IsInvalidFile(uploadFile.FileName))
             {
                 ModelState.AddModelError(String.Empty, Strings.UploadFileMustBeNuGetPackage);
                 return View();
             }
 
-            using (var uploadStream = uploadFile.InputStream)
+	
+	    
+	    //TODO : This read step is done multiple times, make sure it's done only once during production
+
+            //The Stream.Read method can process files of size 2 GB maximum. 
+            //This puts a constraint on the maximum size of the extension to
+            //not exceed 2 GB
+            var stream = uploadFile.InputStream;
+            Int32 count = (Int32)stream.Length;
+            byte[] content = new byte[count];
+            stream.Read(content, 0, count);
+            var vsixItem = VsixRepository.Read(content, uploadFile.FileName);
+
+            _cacheService.RemoveProgress(currentUser.Username);
+
+            var packageRegistration = _packageService.FindPackageRegistrationById(vsixItem.VsixId);
+            if (packageRegistration != null && !packageRegistration.Owners.AnySafe(x => x.Key == currentUser.Key))
             {
-                PackageArchiveReader packageArchiveReader;
-                try
-                {
-                    packageArchiveReader = CreatePackage(uploadStream);
-
-                    _packageService.EnsureValid(packageArchiveReader);
-                }
-                catch (InvalidPackageException ipex)
-                {
-                    ipex.Log();
-                    ModelState.AddModelError(String.Empty, ipex.Message);
-                    return View();
-                }
-                catch (InvalidDataException idex)
-                {
-                    idex.Log();
-                    ModelState.AddModelError(String.Empty, idex.Message);
-                    return View();
-                }
-                catch (EntityException enex)
-                {
-                    enex.Log();
-                    ModelState.AddModelError(String.Empty, enex.Message);
-                    return View();
-                }
-                catch (Exception ex)
-                {
-                    ex.Log();
-                    ModelState.AddModelError(String.Empty, Strings.FailedToReadUploadFile);
-                    return View();
-                }
-                finally
-                {
-                    _cacheService.RemoveProgress(currentUser.Username);
-                }
-
-                NuspecReader nuspec;
-                var errors = ManifestValidator.Validate(packageArchiveReader.GetNuspec(), out nuspec).ToArray();
-                if (errors.Length > 0)
-                {
-                    foreach (var error in errors)
-                    {
-                        ModelState.AddModelError(String.Empty, error.ErrorMessage);
-                    }
-                    return View();
-                }
-
-                // Check min client version
-                if (nuspec.GetMinClientVersion() > Constants.MaxSupportedMinClientVersion)
-                {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        string.Format(
-                            CultureInfo.CurrentCulture,
-                            Strings.UploadPackage_MinClientVersionOutOfRange,
-                            nuspec.GetMinClientVersion()));
-                    return View();
-                }
-
-                var packageRegistration = _packageService.FindPackageRegistrationById(nuspec.GetId());
-                if (packageRegistration != null && !packageRegistration.Owners.AnySafe(x => x.Key == currentUser.Key))
-                {
-                    ModelState.AddModelError(
-                        string.Empty, string.Format(CultureInfo.CurrentCulture, Strings.PackageIdNotAvailable, packageRegistration.Id));
-                    return View();
-                }
-
-                var package = _packageService.FindPackageByIdAndVersion(nuspec.GetId(), nuspec.GetVersion().ToStringSafe());
-                if (package != null)
-                {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        string.Format(
-                            CultureInfo.CurrentCulture, Strings.PackageExistsAndCannotBeModified, package.PackageRegistration.Id, package.Version));
-                    return View();
-                }
-
-                await _uploadFileService.SaveUploadFileAsync(currentUser.Key, uploadStream);
+                ModelState.AddModelError(
+                    string.Empty, string.Format(CultureInfo.CurrentCulture, Strings.PackageIdNotAvailable, packageRegistration.Id));
+                return View();
             }
 
-            return RedirectToRoute(RouteName.VerifyPackage);
+            var package = _packageService.FindPackageByIdAndVersion(vsixItem.VsixId, vsixItem.VsixVersion.ToStringSafe());
+            if (package != null)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    string.Format(
+                        CultureInfo.CurrentCulture, Strings.PackageExistsAndCannotBeModified, package.PackageRegistration.Id, package.Version));
+                return View();
+            }
+
+            await _uploadFileService.SaveUploadFileAsync(currentUser.Key, stream);
+
+            return RedirectToRoute(RouteName.VerifyPackage, uploadFile);
+        }
+	    
+
+        private static bool IsInvalidFile(string fileName)
+        {
+            return !Path.GetExtension(fileName).Equals(Constants.VsixPackageFileExtension, StringComparison.OrdinalIgnoreCase) &&
+                            !Path.GetExtension(fileName).Equals(Constants.MsiPackageFileExtension, StringComparison.OrdinalIgnoreCase) &&
+                            !Path.GetExtension(fileName).Equals(Constants.ExePackageFileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         public virtual async Task<ActionResult> DisplayPackage(string id, string version)
@@ -953,8 +915,9 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
 
             PackageMetadata packageMetadata;
-            using (Stream uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (FileStreamInfo streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
+	    var uploadFile = streamInfo.Stream;
                 if (uploadFile == null)
                 {
                     return RedirectToRoute(RouteName.UploadPackage);
@@ -968,8 +931,8 @@ namespace NuGetGallery
 
                 try
                 {
-                    packageMetadata = PackageMetadata.FromNuspecReader(
-                        package.GetNuspecReader());
+                    var adapter = new VsixNuspecAdapter(streamInfo);
+                    packageMetadata = adapter.ToNuspecPackageMetadata();
                 }
                 catch (Exception ex)
                 {
@@ -1019,8 +982,9 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
 
             Package package;
-            using (Stream uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (FileStreamInfo info = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
+                var uploadFile = info.Stream;
                 if (uploadFile == null)
                 {
                     TempData["Message"] = "Your attempt to verify the package submission failed, because we could not find the uploaded package file. Please try again.";
@@ -1035,8 +999,7 @@ namespace NuGetGallery
                 }
                 Debug.Assert(nugetPackage != null);
 
-                var packageMetadata = PackageMetadata.FromNuspecReader(
-                    nugetPackage.GetNuspecReader());
+                var packageMetadata = VsixNuspecAdapter.Construct(info);
 
                 // Rule out problem scenario with multiple tabs - verification request (possibly with edits) was submitted by user
                 // viewing a different package to what was actually most recently uploaded

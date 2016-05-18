@@ -9,7 +9,7 @@ namespace NuGetGallery
     {
         Task DeleteUploadFileAsync(int userKey);
 
-        Task<Stream> GetUploadFileAsync(int userKey);
+        Task<FileStreamInfo> GetUploadFileAsync(int userKey);
 
         Task SaveUploadFileAsync(int userKey, Stream packageFileStream);
     }

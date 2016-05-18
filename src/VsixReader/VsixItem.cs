@@ -4,7 +4,7 @@ using System.Linq;
 using VSIX.v20;
 using VSIXParser;
 
-namespace Inmeta.VSIX
+namespace VSIXParser
 {
     public class VsixItem
     {
