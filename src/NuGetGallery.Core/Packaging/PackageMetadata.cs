@@ -48,7 +48,7 @@ namespace NuGetGallery.Packaging
         public static readonly string summaryTag = "summary";
         public static readonly string titleTag = "title";
         public static readonly string tagsTag = "tags";
-        public static readonly string languagesTag = "tags";
+        public static readonly string languagesTag = "language";
         public static readonly string ownersTag = "owners";
         public static readonly string commaseparatedAuthorsTag ="authors";
 

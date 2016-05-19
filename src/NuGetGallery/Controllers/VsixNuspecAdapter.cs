@@ -29,10 +29,7 @@ namespace NuGetGallery
         internal PackageMetadata ToNuspecPackageMetadata()
         {
 
-            var stream = FileStreamInfo.Stream;
-            Int32 count = (Int32)stream.Length;
-            byte[] content = new byte[count];
-            stream.Read(content, 0, count);
+            var content = File.ReadAllBytes(FileStreamInfo.Name);
             var vsixItem = VsixRepository.Read(content, FileStreamInfo.Name);
 
             var metadata = ConstructNuspecComplaintDictionary(vsixItem);

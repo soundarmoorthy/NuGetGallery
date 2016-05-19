@@ -50,10 +50,8 @@ namespace NuGetGallery
             }
         }
 
-        public async Task<Package> CreatePackageAsync(PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true)
+        public async Task<Package> CreatePackageAsync(PackageMetadata packageMetadata, PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true)
         {
-            var packageMetadata = PackageMetadata.FromNuspecReader(nugetPackage.GetNuspecReader());
-
             ValidateNuGetPackageMetadata(packageMetadata);
 
             ValidatePackageTitle(packageMetadata);
@@ -454,16 +452,20 @@ namespace NuGetGallery
             }
 #pragma warning restore 618
 
-            var supportedFrameworks = GetSupportedFrameworks(nugetPackage).Select(fn => fn.ToShortNameOrNull()).ToArray();
-            if (!supportedFrameworks.AnySafe(sf => sf == null))
-            {
-                ValidateSupportedFrameworks(supportedFrameworks);
+//Soundar : For any vsix we add, net45 is probably the apt value. This field in the future should be used for specifiying 
+// the different shell versions that can be used.
+                    package.SupportedFrameworks.Add(new PackageFramework { TargetFramework = "net45" });
+			//SOUNDAR : I hate this code, but not sure why now.
+            //var supportedFrameworks = GetSupportedFrameworks(nugetPackage).Select(fn => fn.ToShortNameOrNull()).ToArray();
+            //if (!supportedFrameworks.AnySafe(sf => sf == null))
+            //{
+            //    ValidateSupportedFrameworks(supportedFrameworks);
 
-                foreach (var supportedFramework in supportedFrameworks)
-                {
-                    package.SupportedFrameworks.Add(new PackageFramework { TargetFramework = supportedFramework });
-                }
-            }
+            //    foreach (var supportedFramework in supportedFrameworks)
+            //    {
+            //        package.SupportedFrameworks.Add(new PackageFramework { TargetFramework = supportedFramework });
+            //    }
+            //}
 
             package.Dependencies = packageMetadata
                 .GetDependencyGroups()

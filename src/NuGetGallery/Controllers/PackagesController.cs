@@ -156,11 +156,14 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
 
-            using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-                if (existingUploadFile != null)
+                if (streamInfo != null)
                 {
-                    return RedirectToRoute(RouteName.VerifyPackage);
+                    if (streamInfo.Stream != null)
+                    {
+                        return RedirectToRoute(RouteName.VerifyPackage);
+                    }
                 }
             }
 
@@ -175,9 +178,9 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
 
-            using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-                if (existingUploadFile != null)
+                if (streamInfo.Stream != null)
                 {
                     return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
                 }
@@ -230,7 +233,7 @@ namespace NuGetGallery
 
             await _uploadFileService.SaveUploadFileAsync(currentUser.Key, stream);
 
-            return RedirectToRoute(RouteName.VerifyPackage, uploadFile);
+            return RedirectToRoute(RouteName.VerifyPackage);
         }
 	    
 
@@ -1040,7 +1043,7 @@ namespace NuGetGallery
                 // update relevant database tables
                 try
                 {
-                    package = await _packageService.CreatePackageAsync(nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
+                    package = await _packageService.CreatePackageAsync(packageMetadata, nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
                     Debug.Assert(package.PackageRegistration != null);
                 }
                 catch (EntityException ex)

@@ -66,7 +66,11 @@ namespace NuGetGallery
         private async Task<FileStreamInfo> GetUploadFileAsyncCore(int userKey)
         {
             var uploadFileName = BuildFileName(userKey);
-            return new FileStreamInfo(uploadFileName, await _fileStorageService.GetFileAsync(Constants.UploadsFolderName, uploadFileName));
+            var stream = await _fileStorageService.GetFileAsync(Constants.UploadsFolderName, uploadFileName);
+            var name = string.Empty;
+            if (stream != null)
+                name = ((FileStream)stream).Name; 
+            return new FileStreamInfo(name, stream);
         }
     }
 }

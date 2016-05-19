@@ -20,7 +20,8 @@ namespace NuGetGallery
 
         public void Dispose()
         {
-            this.Stream.Dispose();
+            if (Stream != null)
+                Stream.Dispose();
         }
     }
 }
