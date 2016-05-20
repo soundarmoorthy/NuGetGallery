@@ -242,29 +242,14 @@
 
     @if (!Model.Deleted)
     {
-        <p>
-            To install @Model.Title, run the following command in the <a href="https://docs.nuget.org/docs/start-here/using-the-package-manager-console">
-                Package Manager Console
-            </a>
+        <p style="text-align:justify">
+            To install <b style="color:blue;font-weight:bold">@Model.Title</b>, download this extension and open it. It should install into Atmel Stduio. Please make sure you have the necessary version
+	    of Atmel studio installed in your PC.
+	    Alternatively, from Atmel studio, you can go to Tools Menu -> Extension Manager -> Online tab, search for this extension and install it.
         </p>
-        <div class="nuget-badge">
-            <p>
-                <code>
-                    Install-Package @Model.Id
-                    @if (!Model.LatestVersion || !Model.Listed)
-                    {
-                        <text> -Version @Model.Version</text>
-                    }
-                    @if (Model.Prerelease)
-                    {
-                        <text> -Pre </text>
-                    }
-                </code>
-            </p>
-        </div>
         if (!String.IsNullOrEmpty(Model.MinClientVersion))
         {
-            <p>Requires NuGet @Model.MinClientVersion or higher.</p>
+            <p>Requires Atmel Studio @Model.MinClientVersion</p>
         }
     }
 
@@ -278,7 +263,7 @@
 
     <h3>Owners</h3>
     @ViewHelpers.OwnersGravatar(Model.Owners, 32, Url)
-    <div title="These authors' works form part of the package or its contents">
+    <div title="These authors' works form part of the extension or its contents">
         <h3>Authors</h3>
         <p class="authors">
             @Model.Authors
@@ -306,11 +291,11 @@
             <h3>Dependencies</h3>
             <p>
                 An error occurred processing dependencies.
-                Your package can still be downloaded and installed, but dependencies cannot be shown.
+                Your extension can still be downloaded and installed, but dependencies cannot be shown.
                 Please @Html.ActionLink("Contact Support", actionName: "ReportMyPackage", controllerName: "Packages", routeValues: new { id = Model.Id, version = Model.Version }, htmlAttributes: null) if you have questions.
             </p>
             <p>
-                <strong>Note: This message is only visible to you and any other package owners.</strong>
+                <strong>Note: This message is only visible to you and any other extension owners.</strong>
             </p>
         }
     }

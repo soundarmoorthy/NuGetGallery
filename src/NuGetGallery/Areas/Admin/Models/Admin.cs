@@ -18,7 +18,7 @@ namespace NuGetGallery.Areas.Admin.Models
         [Index]
         public string PagerDutyUsername { get; set; }
 
-        [Required(ErrorMessage = "Please provide a NuGet Gallery username")]
+        [Required(ErrorMessage = "Please provide a Atmel Gallery username")]
         [Display(Name = "NuGet Gallery username")]
         [StringLength(255)]
         [Index]
