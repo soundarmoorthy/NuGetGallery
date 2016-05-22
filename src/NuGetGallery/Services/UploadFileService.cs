@@ -28,7 +28,7 @@ namespace NuGetGallery
             return _fileStorageService.DeleteFileAsync(Constants.UploadsFolderName, uploadFileName);
         }
 
-        public Task<FileStreamInfo> GetUploadFileAsync(int userKey)
+        public Task<FileStreamContext> GetUploadFileAsync(int userKey)
         {
             if (userKey < 1)
             {
@@ -63,14 +63,14 @@ namespace NuGetGallery
         }
 
         // Use the trick of a private core method that actually does the async stuff to allow for sync arg contract checking
-        private async Task<FileStreamInfo> GetUploadFileAsyncCore(int userKey)
+        private async Task<FileStreamContext> GetUploadFileAsyncCore(int userKey)
         {
             var uploadFileName = BuildFileName(userKey);
             var stream = await _fileStorageService.GetFileAsync(Constants.UploadsFolderName, uploadFileName);
             var name = string.Empty;
             if (stream != null)
                 name = ((FileStream)stream).Name; 
-            return new FileStreamInfo(name, stream);
+            return new FileStreamContext(name, stream);
         }
     }
 }

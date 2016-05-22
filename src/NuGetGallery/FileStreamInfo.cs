@@ -6,13 +6,15 @@ using System.Web;
 
 namespace NuGetGallery
 {
-    public class FileStreamInfo : IDisposable
+    public class FileStreamContext : IDisposable
     {
 
         public readonly string Name;
         public readonly Stream Stream;
 
-	public FileStreamInfo(string filename, Stream stream)
+	public string Username { get; set; }
+
+	public FileStreamContext(string filename, Stream stream)
         {
             this.Name = filename;
             this.Stream = stream;

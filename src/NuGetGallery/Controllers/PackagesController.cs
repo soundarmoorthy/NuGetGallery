@@ -178,13 +178,17 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
 
-            using (var streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
-            {
+
+            PackageRegistrationInfo info;
+            var streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key);
+            
                 if (streamInfo.Stream != null)
-                {
-                    return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
-                }
+            {
+                return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
             }
+
+            var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(uploadFile.FileName));
+            info = adapter.ConstructRegistrationInfo(uploadFile.InputStream, streamInfo.Name);
 
             if (uploadFile == null)
             {
@@ -198,22 +202,10 @@ namespace NuGetGallery
                 return View();
             }
 
-	
-	    
-	    //TODO : This read step is done multiple times, make sure it's done only once during production
-
-            //The Stream.Read method can process files of size 2 GB maximum. 
-            //This puts a constraint on the maximum size of the extension to
-            //not exceed 2 GB
-            var stream = uploadFile.InputStream;
-            Int32 count = (Int32)stream.Length;
-            byte[] content = new byte[count];
-            stream.Read(content, 0, count);
-            var vsixItem = VsixRepository.Read(content, uploadFile.FileName);
 
             _cacheService.RemoveProgress(currentUser.Username);
 
-            var packageRegistration = _packageService.FindPackageRegistrationById(vsixItem.VsixId);
+            var packageRegistration = _packageService.FindPackageRegistrationById(info.Id);
             if (packageRegistration != null && !packageRegistration.Owners.AnySafe(x => x.Key == currentUser.Key))
             {
                 ModelState.AddModelError(
@@ -221,7 +213,7 @@ namespace NuGetGallery
                 return View();
             }
 
-            var package = _packageService.FindPackageByIdAndVersion(vsixItem.VsixId, vsixItem.VsixVersion.ToStringSafe());
+            var package = _packageService.FindPackageByIdAndVersion(info.Id, info.Version.ToStringSafe());
             if (package != null)
             {
                 ModelState.AddModelError(
@@ -231,7 +223,8 @@ namespace NuGetGallery
                 return View();
             }
 
-            await _uploadFileService.SaveUploadFileAsync(currentUser.Key, stream);
+            await _uploadFileService.SaveUploadFileAsync(currentUser.Key, uploadFile.InputStream);
+            streamInfo.Dispose();
 
             return RedirectToRoute(RouteName.VerifyPackage);
         }
@@ -918,7 +911,7 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
 
             PackageMetadata packageMetadata;
-            using (FileStreamInfo streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (FileStreamContext streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
 	    var uploadFile = streamInfo.Stream;
                 if (uploadFile == null)
@@ -934,8 +927,9 @@ namespace NuGetGallery
 
                 try
                 {
-                    var adapter = new VsixNuspecAdapter(streamInfo);
-                    packageMetadata = adapter.ToNuspecPackageMetadata();
+                    streamInfo.Username = currentUser.Username;
+                    var nuspecAdapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(streamInfo.Name));
+                    packageMetadata = nuspecAdapter.ConstructMetadata(streamInfo);
                 }
                 catch (Exception ex)
                 {
@@ -985,7 +979,7 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
 
             Package package;
-            using (FileStreamInfo info = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (FileStreamContext info = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
                 var uploadFile = info.Stream;
                 if (uploadFile == null)
@@ -1002,7 +996,9 @@ namespace NuGetGallery
                 }
                 Debug.Assert(nugetPackage != null);
 
-                var packageMetadata = VsixNuspecAdapter.Construct(info);
+                info.Username = currentUser.Username;
+                var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(info.Name))
+                    .ConstructMetadata(info);
 
                 // Rule out problem scenario with multiple tabs - verification request (possibly with edits) was submitted by user
                 // viewing a different package to what was actually most recently uploaded
