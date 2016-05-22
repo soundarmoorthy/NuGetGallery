@@ -34,12 +34,13 @@ namespace NuGetGallery
 
         private byte[] GetContentFromStream(string fileName)
         {
-
-            Stream stream = File.OpenRead(fileName);
-            Int32 count = (Int32)stream.Length;
-            byte[] content = new byte[count];
-            stream.Read(content, 0, count);
-            return content;
+            using (Stream stream = File.OpenRead(fileName))
+            {
+                Int32 count = (Int32)stream.Length;
+                byte[] content = new byte[count];
+                stream.Read(content, 0, count);
+                return content;
+            }
         }
 
         public PackageMetadata ConstructMetadata(FileStreamContext context)
