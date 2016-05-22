@@ -19,21 +19,23 @@ namespace NuGetGallery
         {
         }
 
-        public PackageRegistrationInfo ConstructRegistrationInfo(Stream stream, string fileName)
+        public PackageRegistrationInfo ConstructRegistrationInfo(string fileName)
         {
-            var vsix = VsixItem(stream, fileName);
+            var vsix = VsixItem(fileName);
             return new PackageRegistrationInfo(vsix.VsixId, vsix.VsixVersion);
         }
 
-        private VsixItem VsixItem(Stream stream, string fileName)
+        private VsixItem VsixItem(string fileName)
         {
-            var content = GetContentFromStream(stream);
+            var content = GetContentFromStream(fileName);
             var vsixItem = VsixRepository.Read(content, fileName);
             return vsixItem;
         }
 
-        private byte[] GetContentFromStream(Stream stream)
+        private byte[] GetContentFromStream(string fileName)
         {
+
+            Stream stream = File.OpenRead(fileName);
             Int32 count = (Int32)stream.Length;
             byte[] content = new byte[count];
             stream.Read(content, 0, count);
@@ -41,7 +43,7 @@ namespace NuGetGallery
         }
 
         public PackageMetadata ConstructMetadata(FileStreamContext context)
-            => ConstructWith(Metadata(VsixItem(context.Stream, context.Name)));
+            => ConstructWith(Metadata(VsixItem(context.Name)));
 
 
         private PackageMetadata ConstructWith(Dictionary<string, string> dict) 

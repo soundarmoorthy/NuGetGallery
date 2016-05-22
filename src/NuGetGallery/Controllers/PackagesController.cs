@@ -187,8 +187,8 @@ namespace NuGetGallery
                 return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
             }
 
-            var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(uploadFile.FileName));
-            info = adapter.ConstructRegistrationInfo(uploadFile.InputStream, streamInfo.Name);
+            var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(streamInfo.Name));
+            info = adapter.ConstructRegistrationInfo(streamInfo.Name);
 
             if (uploadFile == null)
             {

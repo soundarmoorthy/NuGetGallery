@@ -22,7 +22,7 @@ namespace NuGetGallery
 
         }
 
-        public PackageRegistrationInfo ConstructRegistrationInfo(Stream stream, string fn)
+        public PackageRegistrationInfo ConstructRegistrationInfo(string fn)
         {
             MsiDatabase msi = new MsiDatabase(fn);
             return new PackageRegistrationInfo(Id(msi), Version(msi));

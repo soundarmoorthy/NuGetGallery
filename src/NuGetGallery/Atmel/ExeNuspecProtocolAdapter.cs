@@ -17,7 +17,7 @@ namespace NuGetGallery
 ConstructWith(NuspecDictionary(context));
 	   
 
-        public PackageRegistrationInfo ConstructRegistrationInfo(Stream stream, string fn) =>
+        public PackageRegistrationInfo ConstructRegistrationInfo(string fn) =>
             new PackageRegistrationInfo(Id(fn), VersionInfo(fn));
 
         string Id(string fn) => new FileInfo(fn).CreationTimeUtc.ToFileTimeUtc().ToString();
