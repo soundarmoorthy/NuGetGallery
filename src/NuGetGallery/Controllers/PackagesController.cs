@@ -156,17 +156,13 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
 
-            using (var streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var stream = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-                if (streamInfo != null)
+                if (stream != null)
                 {
-                    if (streamInfo.Stream != null)
-                    {
-                        return RedirectToRoute(RouteName.VerifyPackage);
-                    }
+                    return RedirectToRoute(RouteName.VerifyPackage);
                 }
             }
-
             return View();
         }
 
@@ -177,18 +173,19 @@ namespace NuGetGallery
         public virtual async Task<ActionResult> UploadPackage(HttpPostedFileBase uploadFile)
         {
             var currentUser = GetCurrentUser();
-
-
+	    //SOUNDAR : This is a serious hack to currently fixup BuildFileName function in UploadFileService
+	    //To fix this properly we need to change a lot of API.
+            Constants.CurrentPackageExtension = Path.GetExtension(uploadFile.FileName);
             PackageRegistrationInfo info;
-            var streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key);
-            
-                if (streamInfo.Stream != null)
+            using (var stream = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-                return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
+                if (stream != null)
+                {
+                    return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
+                }
             }
 
-            var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(streamInfo.Name));
-            info = adapter.ConstructRegistrationInfo(streamInfo.Name);
+            info = ConstructRegistrationInfo(uploadFile);
 
             if (uploadFile == null)
             {
@@ -224,11 +221,20 @@ namespace NuGetGallery
             }
 
             await _uploadFileService.SaveUploadFileAsync(currentUser.Key, uploadFile.InputStream);
-            streamInfo.Dispose();
 
             return RedirectToRoute(RouteName.VerifyPackage);
         }
-	    
+
+        private PackageRegistrationInfo ConstructRegistrationInfo(HttpPostedFileBase uploadFile)
+        {
+            PackageRegistrationInfo info;
+            var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(uploadFile.FileName));
+            var fn = Path.GetTempFileName();
+            uploadFile.SaveAs(fn);
+            info = adapter.ConstructRegistrationInfo(fn);
+            System.IO.File.Delete(fn);
+            return info;
+        }
 
         private static bool IsInvalidFile(string fileName)
         {
@@ -909,27 +915,19 @@ namespace NuGetGallery
         public virtual async Task<ActionResult> VerifyPackage()
         {
             var currentUser = GetCurrentUser();
-
             PackageMetadata packageMetadata;
-            using (FileStreamContext streamInfo = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using ( var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-	    var uploadFile = streamInfo.Stream;
                 if (uploadFile == null)
                 {
                     return RedirectToRoute(RouteName.UploadPackage);
                 }
 
-                var package = await SafeCreatePackage(currentUser, uploadFile);
-                if (package == null)
-                {
-                    return Redirect(Url.UploadPackage());
-                }
-
                 try
                 {
-                    streamInfo.Username = currentUser.Username;
-                    var nuspecAdapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(streamInfo.Name));
-                    packageMetadata = nuspecAdapter.ConstructMetadata(streamInfo);
+                    FileStream fs = uploadFile as FileStream;
+                    var nuspecAdapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name));
+                    packageMetadata = nuspecAdapter.ConstructMetadata(fs);
                 }
                 catch (Exception ex)
                 {
@@ -979,26 +977,25 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
 
             Package package;
-            using (FileStreamContext info = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-                var uploadFile = info.Stream;
                 if (uploadFile == null)
                 {
                     TempData["Message"] = "Your attempt to verify the package submission failed, because we could not find the uploaded package file. Please try again.";
                     return new RedirectResult(Url.UploadPackage());
                 }
 
-                var nugetPackage = await SafeCreatePackage(currentUser, uploadFile);
-                if (nugetPackage == null)
-                {
-                    // Send the user back
-                    return new RedirectResult(Url.UploadPackage());
-                }
-                Debug.Assert(nugetPackage != null);
+                //var nugetPackage = await SafeCreatePackage(currentUser, uploadFile);
+                //if (nugetPackage == null)
+                //{
+                //    // Send the user back
+                //    return new RedirectResult(Url.UploadPackage());
+                //}
+                //Debug.Assert(nugetPackage != null);
 
-                info.Username = currentUser.Username;
-                var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(info.Name))
-                    .ConstructMetadata(info);
+                FileStream fs = uploadFile as FileStream;
+                var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name))
+                    .ConstructMetadata(fs);
 
                 // Rule out problem scenario with multiple tabs - verification request (possibly with edits) was submitted by user
                 // viewing a different package to what was actually most recently uploaded
@@ -1039,7 +1036,9 @@ namespace NuGetGallery
                 // update relevant database tables
                 try
                 {
-                    package = await _packageService.CreatePackageAsync(packageMetadata, nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
+		//SOUNDAR : The nugetPackage argument is not at all used inside the package service for creating package. Instead of changing the entire hierarchy
+		// at 3:41 AM in the morning , i prefer a null to be much more efficient. 
+                    package = await _packageService.CreatePackageAsync(packageMetadata, /*nugetPackage*/ null, packageStreamMetadata, currentUser, commitChanges: false);
                     Debug.Assert(package.PackageRegistration != null);
                 }
                 catch (EntityException ex)
@@ -1061,7 +1060,7 @@ namespace NuGetGallery
                     await _packageService.MarkPackageUnlistedAsync(package, commitChanges: false);
                 }
 
-                await _autoCuratedPackageCmd.ExecuteAsync(package, nugetPackage, commitChanges: false);
+                await _autoCuratedPackageCmd.ExecuteAsync(package, /*nugetPackage*/ null, commitChanges: false);
 
                 // save package to blob storage
                 uploadFile.Position = 0;

@@ -17,6 +17,7 @@ namespace NuGetGallery
         public const string PackageContentType = "binary/octet-stream";
         public const string OctetStreamContentType = "application/octet-stream";
         public const string VsixPackageFileExtension = ".vsix";
+        public static string CurrentPackageExtension = ".vsix";
         public const string MsiPackageFileExtension = ".msi";
         public const string ExePackageFileExtension = ".exe";
         public const string PackageFileDownloadUriTemplate = "packages/{0}/{1}/download";

@@ -13,8 +13,8 @@ namespace NuGetGallery
 {
     public class ExeNuspecProtocolAdapter : INuspecProtocolAdapter
     {
-        public PackageMetadata ConstructMetadata(FileStreamContext context) =>
-ConstructWith(NuspecDictionary(context));
+        public PackageMetadata ConstructMetadata(FileStream context) =>
+            ConstructWith(NuspecDictionary(context));
 	   
 
         public PackageRegistrationInfo ConstructRegistrationInfo(string fn) =>
@@ -47,7 +47,7 @@ ConstructWith(NuspecDictionary(context));
             return string.Concat(name, " extension for Atmel Studido");
         }
 
-        private Dictionary<string, string> NuspecDictionary(FileStreamContext context)
+        private Dictionary<string, string> NuspecDictionary(FileStream context)
         {
 
             FileVersionInfo info = FileVersionInfo.GetVersionInfo(context.Name);
@@ -70,7 +70,7 @@ ConstructWith(NuspecDictionary(context));
             dict.Add(PackageMetadata.tagsTag, "msi");
             dict.Add(PackageMetadata.languagesTag, info.Language ?? "en-US");
             dict.Add(PackageMetadata.ownersTag, info.CompanyName ?? "");
-            dict.Add(PackageMetadata.commaseparatedAuthorsTag, context.Username);
+            dict.Add(PackageMetadata.commaseparatedAuthorsTag, "");
             return dict;
         }
     }

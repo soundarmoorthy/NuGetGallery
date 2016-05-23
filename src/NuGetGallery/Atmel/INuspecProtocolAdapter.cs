@@ -7,7 +7,7 @@ namespace NuGetGallery
 {
     public interface INuspecProtocolAdapter
     {
-        PackageMetadata ConstructMetadata(FileStreamContext context);
+        PackageMetadata ConstructMetadata(FileStream context);
         PackageRegistrationInfo ConstructRegistrationInfo(string fileName);
     }
 }

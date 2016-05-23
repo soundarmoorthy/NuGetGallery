@@ -24,8 +24,10 @@ namespace NuGetGallery
 
         public PackageRegistrationInfo ConstructRegistrationInfo(string fn)
         {
-            MsiDatabase msi = new MsiDatabase(fn);
-            return new PackageRegistrationInfo(Id(msi), Version(msi));
+            using (MsiDatabase msi = new MsiDatabase(fn))
+            {
+                return new PackageRegistrationInfo(Id(msi), Version(msi));
+            }
         }
 
 	string Version(MsiDatabase db) 
@@ -36,7 +38,7 @@ namespace NuGetGallery
 	    => (string)db.ExecuteScalar("SELECT `Value` FROM " +
                      " `Property` WHERE `Property` = 'UpgradeCode'");
 
-        public PackageMetadata ConstructMetadata(FileStreamContext context) 
+        public PackageMetadata ConstructMetadata(FileStream context) 
 	    => ConstructWith(NuspecDictionary(context));
 
         private PackageMetadata ConstructWith(Dictionary<string, string> dict) 
@@ -54,7 +56,7 @@ namespace NuGetGallery
                         new FrameworkSpecificGroup(NuGetFramework.AnyFramework, Enumerable.Empty<string>())
                       };
 
-        private Dictionary<string, string> NuspecDictionary(FileStreamContext context)
+        private Dictionary<string, string> NuspecDictionary(FileStream context)
         {
             MsiDatabase msi = new MsiDatabase(context.Name);
 
@@ -75,7 +77,7 @@ namespace NuGetGallery
             dict.Add(PackageMetadata.titleTag, msi.SummaryInfo.Title);
             dict.Add(PackageMetadata.tagsTag, "msi");
             dict.Add(PackageMetadata.languagesTag, "en-US");
-            dict.Add(PackageMetadata.ownersTag, context.Username);
+            dict.Add(PackageMetadata.ownersTag, "");
             dict.Add(PackageMetadata.commaseparatedAuthorsTag, msi.SummaryInfo.Author);
             return dict;
         }
