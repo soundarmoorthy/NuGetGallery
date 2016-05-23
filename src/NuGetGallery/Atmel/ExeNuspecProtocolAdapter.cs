@@ -13,7 +13,7 @@ namespace NuGetGallery
 {
     public class ExeNuspecProtocolAdapter : INuspecProtocolAdapter
     {
-        public PackageMetadata ConstructMetadata(FileStream context) =>
+        public PackageMetadata Metadata(FileStream context) =>
             ConstructWith(NuspecDictionary(context));
 	   
 

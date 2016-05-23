@@ -9,8 +9,10 @@ using NuGet.Packaging;
 using NuGet.Frameworks;
 using System.Diagnostics;
 
-using MsiDatabase = Microsoft.Deployment.WindowsInstaller.Database;
-using System.Web;
+using PM = NuGetGallery.Packaging.PackageMetadata;
+using PkgInfo = NuGetGallery.PackageRegistrationInfo;
+using MSIdb = Microsoft.Deployment.WindowsInstaller.Database;
+using Summary = System.Collections.Generic.Dictionary<string, string>;
 
 namespace NuGetGallery
 {
@@ -22,27 +24,29 @@ namespace NuGetGallery
 
         }
 
-        public PackageRegistrationInfo ConstructRegistrationInfo(string fn)
+        public PkgInfo ConstructRegistrationInfo(string fn)
         {
-            using (MsiDatabase msi = new MsiDatabase(fn))
+            using (var msi = new MSIdb(fn))
             {
-                return new PackageRegistrationInfo(Id(msi), Version(msi));
+                var info = new PkgInfo(Id(msi), Version(msi));
+                msi.Close();
+                return info;
             }
         }
 
-	string Version(MsiDatabase db) 
+	string Version(MSIdb db) 
 	    => (string)db.ExecuteScalar("SELECT `Value` FROM " +
                            "`Property` WHERE `Property` = 'ProductVersion'");
 
-	string Id(MsiDatabase db) 
+	string Id(MSIdb db) 
 	    => (string)db.ExecuteScalar("SELECT `Value` FROM " +
                      " `Property` WHERE `Property` = 'UpgradeCode'");
 
-        public PackageMetadata ConstructMetadata(FileStream context) 
-	    => ConstructWith(NuspecDictionary(context));
+        public PM Metadata(FileStream context) 
+	    => Construct(WithSummary(context));
 
-        private PackageMetadata ConstructWith(Dictionary<string, string> dict) 
-	    =>  new PackageMetadata(dict, DepGroups(), FxGroups(), new NuGetVersion("7.0"));
+        private PM Construct(Summary summ) 
+	    =>  new PM(summ, DepGroups(), FxGroups(), new NuGetVersion("7.0"));
 
         IEnumerable<PackageDependencyGroup> DepGroups() 
 	    =>  new[] {
@@ -56,30 +60,32 @@ namespace NuGetGallery
                         new FrameworkSpecificGroup(NuGetFramework.AnyFramework, Enumerable.Empty<string>())
                       };
 
-        private Dictionary<string, string> NuspecDictionary(FileStream context)
+        private Summary WithSummary(FileStream context)
         {
-            MsiDatabase msi = new MsiDatabase(context.Name);
+            using (MSIdb msi = new MSIdb(context.Name))
+            {
+                var dict = new Summary();
+                dict.Add(PM.IdTag, Id(msi));
 
-            var dict = new Dictionary<string, string>();
-            dict.Add(PackageMetadata.IdTag, Id(msi));
-                
-            dict.Add(PackageMetadata.VersionTag, Version(msi));
-            //SOUNDAR : Fix the icon path. It expects a http URI, whereas this is the relative path to vsix
-            dict.Add(PackageMetadata.IconUrlTag, "");
-            dict.Add(PackageMetadata.projectUrlTag, "");
-            //SOUNDAR : Need to find license URL or serve it.
-            dict.Add(PackageMetadata.licenseUrlTag, "");
-            dict.Add(PackageMetadata.copyrightTag, "");
-            dict.Add(PackageMetadata.descriptionTag, "");
-            dict.Add(PackageMetadata.releaseNotesTag, "");
-            dict.Add(PackageMetadata.requireLicenseAcceptanceTag, "true");
-            dict.Add(PackageMetadata.summaryTag, msi.SummaryInfo.Comments);
-            dict.Add(PackageMetadata.titleTag, msi.SummaryInfo.Title);
-            dict.Add(PackageMetadata.tagsTag, "msi");
-            dict.Add(PackageMetadata.languagesTag, "en-US");
-            dict.Add(PackageMetadata.ownersTag, "");
-            dict.Add(PackageMetadata.commaseparatedAuthorsTag, msi.SummaryInfo.Author);
-            return dict;
+                dict.Add(PM.VersionTag, Version(msi));
+                //SOUNDAR : Fix the icon path. It expects a http URI, whereas this is the relative path to vsix
+                dict.Add(PM.IconUrlTag, "");
+                dict.Add(PM.projectUrlTag, "");
+                //SOUNDAR : Need to find license URL or serve it.
+                dict.Add(PM.licenseUrlTag, "");
+                dict.Add(PM.copyrightTag, "");
+                dict.Add(PM.descriptionTag, "");
+                dict.Add(PM.releaseNotesTag, "");
+                dict.Add(PM.requireLicenseAcceptanceTag, "true");
+                dict.Add(PM.summaryTag, msi.SummaryInfo.Comments);
+                dict.Add(PM.titleTag, msi.SummaryInfo.Title);
+                dict.Add(PM.tagsTag, "msi");
+                dict.Add(PM.languagesTag, "en-US");
+                dict.Add(PM.ownersTag, "");
+                dict.Add(PM.commaseparatedAuthorsTag, msi.SummaryInfo.Author);
+                msi.Close();
+                return dict;
+            }
         }
     }
 }

@@ -43,7 +43,7 @@ namespace NuGetGallery
             }
         }
 
-        public PackageMetadata ConstructMetadata(FileStream context)
+        public PackageMetadata Metadata(FileStream context)
             => ConstructWith(Metadata(VsixItem(context.Name)));
 
 

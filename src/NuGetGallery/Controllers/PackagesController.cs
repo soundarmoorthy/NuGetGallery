@@ -927,7 +927,7 @@ namespace NuGetGallery
                 {
                     FileStream fs = uploadFile as FileStream;
                     var nuspecAdapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name));
-                    packageMetadata = nuspecAdapter.ConstructMetadata(fs);
+                    packageMetadata = nuspecAdapter.Metadata(fs);
                 }
                 catch (Exception ex)
                 {
@@ -995,7 +995,7 @@ namespace NuGetGallery
 
                 FileStream fs = uploadFile as FileStream;
                 var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name))
-                    .ConstructMetadata(fs);
+                    .Metadata(fs);
 
                 // Rule out problem scenario with multiple tabs - verification request (possibly with edits) was submitted by user
                 // viewing a different package to what was actually most recently uploaded
