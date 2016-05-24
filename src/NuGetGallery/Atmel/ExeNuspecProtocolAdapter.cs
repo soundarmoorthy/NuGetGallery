@@ -52,10 +52,15 @@ namespace NuGetGallery
 
             FileVersionInfo info = FileVersionInfo.GetVersionInfo(context.Name);
             var dict = new Dictionary<string, string>();
-            dict.Add(PackageMetadata.IdTag,
-                string.Join("_", info.ProductName, Guid.NewGuid().ToString()));
+            dict.Add(PackageMetadata.IdTag, info.Comments.Replace(' ', '-'));
 
-            dict.Add(PackageMetadata.VersionTag, info.ProductVersion ?? info.FileVersion ?? "");
+            Version result;
+            var success = Version.TryParse(info.ProductVersion ?? info.FileVersion ?? "", out result);
+
+            if (!success)
+                result = new Version("1.0.0");
+
+            dict.Add(PackageMetadata.VersionTag, result.ToString());
             //SOUNDAR : Fix the icon path. It expects a http URI, whereas this is the relative path to vsix
             dict.Add(PackageMetadata.IconUrlTag, "");
             dict.Add(PackageMetadata.projectUrlTag, "");
