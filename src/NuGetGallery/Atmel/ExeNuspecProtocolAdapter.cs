@@ -8,23 +8,26 @@ using System.IO;
 using NuGet.Packaging;
 using NuGet.Frameworks;
 using NuGet.Versioning;
+using FileVer = System.Diagnostics.FileVersionInfo;
+using Summary = System.Collections.Generic.Dictionary<string, string>;
+using System.Globalization;
 
 namespace NuGetGallery
 {
     public class ExeNuspecProtocolAdapter : INuspecProtocolAdapter
     {
         public PackageMetadata Metadata(FileStream context) =>
-            ConstructWith(NuspecDictionary(context));
+            ConstructWith(Summary(context));
 	   
 
         public PackageRegistrationInfo ConstructRegistrationInfo(string fn) =>
             new PackageRegistrationInfo(Id(fn), VersionInfo(fn));
 
-        string Id(string fn) => new FileInfo(fn).CreationTimeUtc.ToFileTimeUtc().ToString();
+        string Id(string fn) => GenerateComputableId(FileVer.GetVersionInfo(fn));
 
-        string VersionInfo(string fn) => FileVersionInfo.GetVersionInfo(fn).ProductVersion;
+        string VersionInfo(string fn) => GetVersion(FileVer.GetVersionInfo(fn));
 
-        private PackageMetadata ConstructWith(Dictionary<string, string> dict) 
+        private PackageMetadata ConstructWith(Summary dict) 
 	    =>  new PackageMetadata(dict, DepGroups(), FxGroups(), new NuGetVersion("7.0"));
 
         IEnumerable<PackageDependencyGroup> DepGroups() 
@@ -40,27 +43,22 @@ namespace NuGetGallery
                       };
 
 
-        private string GetGoodFileName(FileVersionInfo info)
+        private string GetGoodFileName(FileVer info)
         {
             var name = info.ProductName ?? info.InternalName ?? info.FileName;
             name = name.Replace('_', ' ').Replace('-', ' ').Replace('.', ' ');
             return string.Concat(name, " extension for Atmel Studido");
         }
 
-        private Dictionary<string, string> NuspecDictionary(FileStream context)
+        private Summary Summary(FileStream context)
         {
+            FileVer info = FileVer.GetVersionInfo(context.Name);
+            var dict = new Summary();
+            string id = GenerateComputableId(info);
 
-            FileVersionInfo info = FileVersionInfo.GetVersionInfo(context.Name);
-            var dict = new Dictionary<string, string>();
-            dict.Add(PackageMetadata.IdTag, info.Comments.Replace(' ', '-'));
+            dict.Add(PackageMetadata.IdTag, id);
 
-            Version result;
-            var success = Version.TryParse(info.ProductVersion ?? info.FileVersion ?? "", out result);
-
-            if (!success)
-                result = new Version("1.0.0");
-
-            dict.Add(PackageMetadata.VersionTag, result.ToString());
+            dict.Add(PackageMetadata.VersionTag, GetVersion(info));
             //SOUNDAR : Fix the icon path. It expects a http URI, whereas this is the relative path to vsix
             dict.Add(PackageMetadata.IconUrlTag, "");
             dict.Add(PackageMetadata.projectUrlTag, "");
@@ -73,10 +71,53 @@ namespace NuGetGallery
             dict.Add(PackageMetadata.summaryTag, info.FileDescription ?? info.Comments ?? "");
             dict.Add(PackageMetadata.titleTag, GetGoodFileName(info));
             dict.Add(PackageMetadata.tagsTag, "msi");
-            dict.Add(PackageMetadata.languagesTag, info.Language ?? "en-US");
+
+            dict.Add(PackageMetadata.languagesTag, GetLanguage(info));
             dict.Add(PackageMetadata.ownersTag, info.CompanyName ?? "");
             dict.Add(PackageMetadata.commaseparatedAuthorsTag, "");
             return dict;
+        }
+
+	private static string GetLanguage(FileVer f)
+        {
+            var language = "en-US"; //By default assume English (United States)
+            if (f.Language != null)
+            {
+                var cultures = CultureInfo.GetCultures(CultureTypes.AllCultures);
+                var c = cultures.Where(x => String.Equals(x.EnglishName, f.Language, StringComparison.OrdinalIgnoreCase));
+                if (c.Any())
+                    language =  c.First().Name;
+            }
+            return language;
+        }
+
+        private static string GetVersion(FileVer info)
+        {
+            Version result = null;
+            var success = Version.TryParse(info.ProductVersion, out result);
+
+            if (!success)
+                success = Version.TryParse(info.FileVersion, out result);
+
+            //SOUNDAR : If we are not able to find the version , we should leave that to the user 
+            //to edit from the UI. Currently it's not the case. We set it to "1.0.0" for now.
+            if (!success)
+                result = new Version("1.0.0");
+
+            return result.ToString();
+        }
+
+        private static string GenerateComputableId(FileVer info)
+        {
+            var id = info.Comments?.Replace(' ', '-');
+
+            if (string.IsNullOrEmpty(id))
+                id = Path.GetFileNameWithoutExtension(info.OriginalFilename).Replace(' ', '-');
+
+            if (string.IsNullOrEmpty(id))
+                id = Path.GetFileNameWithoutExtension(info.InternalName).Replace(' ', '-');
+
+            return id;
         }
     }
 }
