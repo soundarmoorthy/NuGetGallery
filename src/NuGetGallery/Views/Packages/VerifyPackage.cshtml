@@ -80,7 +80,7 @@
     <ul id="packageDetails" style="border-bottom: 1px solid gray; margin-bottom: 1em;">
         <li>@ReadOnlyField("Package ID", "Id", Model.Id)</li>
         <li>@ReadOnlyField("Version", "Version", Model.Version)</li>
-        <li>@ReadOnlyField("Minimum NuGet Client Version", "MinClientVersion", Model.MinClientVersion.ToStringSafe())</li>
+        <li>@ReadOnlyField("Supported Atmel Studio Version(s)", "MinClientVersion", Model.MinClientVersion.ToStringSafe())</li>
         <li>@ReadOnlyField("License URL", "LicenseUrl", Model.LicenseUrl, link: true)</li>
         <li>@ReadOnlyField("Language", "Language", Model.Language)</li>
         <li>@ReadOnlyField("Development Dependency", "DevDependency", Model.DevelopmentDependency)</li>

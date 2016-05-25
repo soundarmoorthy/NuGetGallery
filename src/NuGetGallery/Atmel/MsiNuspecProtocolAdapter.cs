@@ -41,6 +41,9 @@ namespace NuGetGallery
 	string Id(MSIdb db) 
 	    => (string)db.ExecuteScalar("SELECT `Value` FROM " +
                      " `Property` WHERE `Property` = 'UpgradeCode'");
+        string Name(MSIdb db)
+            => (string)db.ExecuteScalar("SELECT `Value` FROM " +
+                " `Property` WHERE `Property` = 'ProductName'");
 
         public PM Metadata(FileStream context) 
 	    => Construct(WithSummary(context));
@@ -78,7 +81,7 @@ namespace NuGetGallery
                 dict.Add(PM.releaseNotesTag, "");
                 dict.Add(PM.requireLicenseAcceptanceTag, "true");
                 dict.Add(PM.summaryTag, msi.SummaryInfo.Comments);
-                dict.Add(PM.titleTag, msi.SummaryInfo.Title);
+                dict.Add(PM.titleTag, msi.SummaryInfo.Subject);
                 dict.Add(PM.tagsTag, "msi");
                 dict.Add(PM.languagesTag, "en-US");
                 dict.Add(PM.ownersTag, "");

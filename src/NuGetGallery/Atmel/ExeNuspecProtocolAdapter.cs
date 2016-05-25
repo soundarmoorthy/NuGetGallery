@@ -73,8 +73,8 @@ namespace NuGetGallery
             dict.Add(PackageMetadata.tagsTag, "msi");
 
             dict.Add(PackageMetadata.languagesTag, GetLanguage(info));
-            dict.Add(PackageMetadata.ownersTag, info.CompanyName ?? "");
-            dict.Add(PackageMetadata.commaseparatedAuthorsTag, "");
+            dict.Add(PackageMetadata.ownersTag, "");
+            dict.Add(PackageMetadata.commaseparatedAuthorsTag, info.CompanyName ?? "");
             return dict;
         }
 
