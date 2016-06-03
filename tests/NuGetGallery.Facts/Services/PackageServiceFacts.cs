@@ -271,7 +271,7 @@ namespace NuGetGallery
                 var nugetPackage = CreateNuGetPackage();
                 var currentUser = new User();
 
-                service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser);
+                service.CreatePackageAsync(null ,nugetPackage.Object, new PackageStreamMetadata(), currentUser);
 
                 packageRegistrationRepository.Verify(x => x.InsertOnCommit(It.Is<PackageRegistration>(pr => pr.Id == "theId")));
                 packageRegistrationRepository.Verify(x => x.CommitChangesAsync());
@@ -314,7 +314,7 @@ namespace NuGetGallery
                 var nugetPackage = CreateNuGetPackage(id: idThatMatchesExistingTitle);
 
                 // Assert
-                var ex = await Assert.ThrowsAsync<EntityException>(async () => await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser, true));
+                var ex = await Assert.ThrowsAsync<EntityException>(async () => await service.CreatePackageAsync(It.IsAny<PackageMetadata>(), nugetPackage.Object, new PackageStreamMetadata(), currentUser, true));
 
                 Assert.Equal(String.Format(Strings.NewRegistrationIdMatchesExistingPackageTitle, idThatMatchesExistingTitle), ex.Message);
             }
@@ -328,7 +328,7 @@ namespace NuGetGallery
                 var nugetPackage = CreateNuGetPackage();
                 var currentUser = new User();
 
-                service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser);
+                service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser);
 
                 packageRegistrationRepository.Verify(x => x.InsertOnCommit(It.Is<PackageRegistration>(pr => pr.Owners.Contains(currentUser))));
             }
@@ -342,7 +342,7 @@ namespace NuGetGallery
                 var nugetPackage = CreateNuGetPackage();
                 var currentUser = new User();
 
-                var package = await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser);
 
                 // Yes, I know this is a lot of asserts. Yes, I know I broke the golden, one assert per test rule.
                 // That said, it's still asserting one "thing": that the package data was read.
@@ -382,7 +382,7 @@ namespace NuGetGallery
                 var nugetPackage = CreateNuGetPackage(language: "fr");
                 var currentUser = new User();
 
-                var package = await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser);
 
                 // Assert
                 Assert.Equal("fr", package.Language);
@@ -403,7 +403,7 @@ namespace NuGetGallery
                 var currentUser = new User();
 
                 // Act
-                var package = await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser);
 
                 // Assert
                 Assert.True(package.IsPrerelease);
@@ -423,7 +423,7 @@ namespace NuGetGallery
                 var currentUser = new User();
 
                 // Act
-                var package = await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: false);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: false);
 
                 // Assert
                 packageRegistrationRepository.Verify();
@@ -444,7 +444,7 @@ namespace NuGetGallery
                 var currentUser = new User();
 
                 // Act
-                var package = await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: false);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: false);
             }
 
             [Fact]
@@ -464,7 +464,7 @@ namespace NuGetGallery
                 var currentUser = new User();
 
                 // Act
-                var package =  await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: true);
+                var package =  await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: true);
 
                 // Assert
                 indexingService.Verify();
@@ -487,7 +487,7 @@ namespace NuGetGallery
                 var currentUser = new User();
 
                 // Act
-                var package = await service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: true);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, new PackageStreamMetadata(), currentUser, commitChanges: true);
 
                 // Assert
                 packageRegistrationRepository.Verify();
@@ -509,7 +509,7 @@ namespace NuGetGallery
                     HashAlgorithm = Constants.Sha512HashAlgorithmId,
                     Size = packageStream.Length
                 };
-                var package = await service.CreatePackageAsync(nugetPackage.Object, packageStreamMetadata, currentUser);
+                var package = await service.CreatePackageAsync(It.IsAny<PackageMetadata>(),nugetPackage.Object, packageStreamMetadata, currentUser);
 
                 Assert.Equal(expectedHash, package.Hash);
                 Assert.Equal(Constants.Sha512HashAlgorithmId, package.HashAlgorithm);

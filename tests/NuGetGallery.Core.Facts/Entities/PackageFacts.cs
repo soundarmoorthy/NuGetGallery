@@ -7,7 +7,7 @@ using Xunit;
 namespace NuGetGallery
 {
     public class PackageFacts
-    {
+    {  
         public class PositiveScenarios
         {
             [Fact]
