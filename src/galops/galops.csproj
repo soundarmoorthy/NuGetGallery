@@ -86,6 +86,7 @@
       <HintPath>..\..\packages\NuGet.Frameworks.3.5.0-rc-1263\lib\net45\NuGet.Frameworks.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="NuGet.Logging" />
     <Reference Include="NuGet.Packaging">
       <HintPath>..\..\packages\NuGet.Packaging.3.5.0-rc-1263\lib\net45\NuGet.Packaging.dll</HintPath>
       <Private>True</Private>
