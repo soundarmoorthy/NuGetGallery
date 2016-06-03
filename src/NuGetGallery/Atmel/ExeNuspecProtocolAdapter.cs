@@ -23,34 +23,34 @@ namespace NuGetGallery
         public PackageRegistrationInfo ConstructRegistrationInfo(string fn) =>
             new PackageRegistrationInfo(Id(fn), VersionInfo(fn));
 
-        string Id(string fn) => GenerateComputableId(FileVer.GetVersionInfo(fn));
+        private static string Id(string fn) => GenerateComputableId(FileVer.GetVersionInfo(fn));
 
-        string VersionInfo(string fn) => GetVersion(FileVer.GetVersionInfo(fn));
+        private static string VersionInfo(string fn) => GetVersion(FileVer.GetVersionInfo(fn));
 
-        private PackageMetadata ConstructWith(Summary dict) 
+        private static PackageMetadata ConstructWith(Summary dict) 
 	    =>  new PackageMetadata(dict, DepGroups(), FxGroups(), new NuGetVersion("7.0"));
 
-        IEnumerable<PackageDependencyGroup> DepGroups() 
+        private static IEnumerable<PackageDependencyGroup> DepGroups() 
 	    =>  new[] {
                         new PackageDependencyGroup(NuGetFramework.AnyFramework,
                         Enumerable.Empty<NuGet.Packaging.Core.PackageDependency>())
                       };
 
 
-        IEnumerable<FrameworkSpecificGroup> FxGroups() 
+        private static IEnumerable<FrameworkSpecificGroup> FxGroups() 
 	    =>  new[] {
                         new FrameworkSpecificGroup(NuGetFramework.AnyFramework, Enumerable.Empty<string>())
                       };
 
 
-        private string GetGoodFileName(FileVer info)
+        private static string GetGoodFileName(FileVer info)
         {
             var name = info.ProductName ?? info.InternalName ?? info.FileName;
             name = name.Replace('_', ' ').Replace('-', ' ').Replace('.', ' ');
             return string.Concat(name, " extension for Atmel Studido");
         }
 
-        private Summary Summary(FileStream context)
+        private static Summary Summary(FileStream context)
         {
             FileVer info = FileVer.GetVersionInfo(context.Name);
             var dict = new Summary();

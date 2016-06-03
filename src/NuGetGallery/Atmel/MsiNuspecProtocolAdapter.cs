@@ -29,41 +29,37 @@ namespace NuGetGallery
             using (var msi = new MSIdb(fn))
             {
                 var info = new PkgInfo(Id(msi), Version(msi));
-                msi.Close();
                 return info;
             }
         }
 
-	string Version(MSIdb db) 
+	private static string Version(MSIdb db) 
 	    => (string)db.ExecuteScalar("SELECT `Value` FROM " +
                            "`Property` WHERE `Property` = 'ProductVersion'");
 
-	string Id(MSIdb db) 
+	private static string Id(MSIdb db) 
 	    => (string)db.ExecuteScalar("SELECT `Value` FROM " +
                      " `Property` WHERE `Property` = 'UpgradeCode'");
-        string Name(MSIdb db)
-            => (string)db.ExecuteScalar("SELECT `Value` FROM " +
-                " `Property` WHERE `Property` = 'ProductName'");
 
         public PM Metadata(FileStream context) 
 	    => Construct(WithSummary(context));
 
-        private PM Construct(Summary summ) 
+        private static PM Construct(Summary summ) 
 	    =>  new PM(summ, DepGroups(), FxGroups(), new NuGetVersion("7.0"));
 
-        IEnumerable<PackageDependencyGroup> DepGroups() 
+        private static IEnumerable<PackageDependencyGroup> DepGroups() 
 	    =>  new[] {
                         new PackageDependencyGroup(NuGetFramework.AnyFramework,
                         Enumerable.Empty<NuGet.Packaging.Core.PackageDependency>())
                       };
 
 
-        IEnumerable<FrameworkSpecificGroup> FxGroups() 
+        private static IEnumerable<FrameworkSpecificGroup> FxGroups() 
 	    =>  new[] {
                         new FrameworkSpecificGroup(NuGetFramework.AnyFramework, Enumerable.Empty<string>())
                       };
 
-        private Summary WithSummary(FileStream context)
+        private static Summary WithSummary(FileStream context)
         {
             using (MSIdb msi = new MSIdb(context.Name))
             {
@@ -86,7 +82,6 @@ namespace NuGetGallery
                 dict.Add(PM.languagesTag, "en-US");
                 dict.Add(PM.ownersTag, "");
                 dict.Add(PM.commaseparatedAuthorsTag, msi.SummaryInfo.Author);
-                msi.Close();
                 return dict;
             }
         }

@@ -57,7 +57,7 @@ namespace NuGetGallery
             return _fileStorageService.SaveFileAsync(Constants.UploadsFolderName, uploadFileName, packageFileStream);
         }
 
-        private string BuildFileName(int userKey)
+        private static string BuildFileName(int userKey)
         {
             return 
 		String.Format(CultureInfo.InvariantCulture, Constants.UploadFileNameTemplate, userKey, Constants.CurrentPackageExtension);

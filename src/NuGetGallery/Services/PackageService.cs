@@ -58,7 +58,7 @@ namespace NuGetGallery
 
             var packageRegistration = CreateOrGetPackageRegistration(user, packageMetadata);
 
-            var package = CreatePackageFromNuGetPackage(packageRegistration, nugetPackage, packageMetadata, packageStreamMetadata, user);
+            var package = CreatePackageFromNuGetPackage(packageRegistration, packageMetadata, packageStreamMetadata, user);
             packageRegistration.Packages.Add(package);
             await UpdateIsLatestAsync(packageRegistration, false);
 
@@ -405,7 +405,7 @@ namespace NuGetGallery
             return packageRegistration;
         }
 
-        private Package CreatePackageFromNuGetPackage(PackageRegistration packageRegistration, PackageArchiveReader nugetPackage, PackageMetadata packageMetadata, PackageStreamMetadata packageStreamMetadata, User user)
+        private static Package CreatePackageFromNuGetPackage(PackageRegistration packageRegistration, PackageMetadata packageMetadata, PackageStreamMetadata packageStreamMetadata, User user)
         {
             var package = packageRegistration.Packages.SingleOrDefault(pv => pv.Version == packageMetadata.Version.ToString());
 

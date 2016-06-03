@@ -225,7 +225,7 @@ namespace NuGetGallery
             return RedirectToRoute(RouteName.VerifyPackage);
         }
 
-        private PackageRegistrationInfo ConstructRegistrationInfo(HttpPostedFileBase uploadFile)
+        private static PackageRegistrationInfo ConstructRegistrationInfo(HttpPostedFileBase uploadFile)
         {
             PackageRegistrationInfo info;
             var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(uploadFile.FileName));

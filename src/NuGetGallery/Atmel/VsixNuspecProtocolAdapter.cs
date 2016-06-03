@@ -25,14 +25,14 @@ namespace NuGetGallery
             return new PackageRegistrationInfo(vsix.VsixId, vsix.VsixVersion);
         }
 
-        private VsixItem VsixItem(string fileName)
+        private static VsixItem VsixItem(string fileName)
         {
             var content = GetContentFromStream(fileName);
             var vsixItem = VsixRepository.Read(content, fileName);
             return vsixItem;
         }
 
-        private byte[] GetContentFromStream(string fileName)
+        private static byte[] GetContentFromStream(string fileName)
         {
             using (Stream stream = File.OpenRead(fileName))
             {
@@ -47,22 +47,22 @@ namespace NuGetGallery
             => ConstructWith(Metadata(VsixItem(context.Name)));
 
 
-        private PackageMetadata ConstructWith(Dictionary<string, string> dict) 
+        private static PackageMetadata ConstructWith(Dictionary<string, string> dict) 
 	    =>  new PackageMetadata(dict, DepGroups(), FxGroups(), new NuGetVersion("7.0"));
 
-        IEnumerable<PackageDependencyGroup> DepGroups() 
+        private static IEnumerable<PackageDependencyGroup> DepGroups() 
 	    =>  new[] {
                         new PackageDependencyGroup(NuGetFramework.AnyFramework,
                         Enumerable.Empty<NuGet.Packaging.Core.PackageDependency>())
                       };
 
 
-        IEnumerable<FrameworkSpecificGroup> FxGroups() 
+        private static IEnumerable<FrameworkSpecificGroup> FxGroups() 
 	    =>  new[] {
                         new FrameworkSpecificGroup(NuGetFramework.AnyFramework, Enumerable.Empty<string>())
                       };
 
-        private Dictionary<string, string> Metadata(VSIXParser.VsixItem vsixItem)
+        private static Dictionary<string, string> Metadata(VSIXParser.VsixItem vsixItem)
         {
 
             var dict = new Dictionary<string, string>();
