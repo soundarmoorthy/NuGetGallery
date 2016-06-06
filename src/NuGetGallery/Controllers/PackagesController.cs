@@ -174,17 +174,13 @@ namespace NuGetGallery
         public virtual async Task<ActionResult> UploadPackage(HttpPostedFileBase uploadFile)
         {
             var currentUser = GetCurrentUser();
-            var fileExtension = Path.GetExtension(uploadFile.FileName);
-            PackageRegistrationInfo info;
-            using (var stream = await _uploadFileService.GetUploadFileAsync(currentUser.Key, Path.GetExtension(uploadFile.FileName)))
+            using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, Path.GetExtension(uploadFile.FileName)))
             {
-                if (stream != null)
+                if (existingUploadFile != null)
                 {
                     return new HttpStatusCodeResult(409, "Cannot upload file because an upload is already in progress.");
                 }
             }
-
-            info = ConstructRegistrationInfo(uploadFile);
 
             if (uploadFile == null)
             {
@@ -201,6 +197,7 @@ namespace NuGetGallery
 
             _cacheService.RemoveProgress(currentUser.Username);
 
+            var info = ConstructRegistrationInfo(uploadFile);
             var packageRegistration = _packageService.FindPackageRegistrationById(info.Id);
             if (packageRegistration != null && !packageRegistration.Owners.AnySafe(x => x.Key == currentUser.Key))
             {
