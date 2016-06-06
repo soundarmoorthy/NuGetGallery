@@ -174,7 +174,8 @@ namespace NuGetGallery
         public virtual async Task<ActionResult> UploadPackage(HttpPostedFileBase uploadFile)
         {
             var currentUser = GetCurrentUser();
-            using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, Path.GetExtension(uploadFile.FileName)))
+            var extn = Path.GetExtension(uploadFile.FileName);
+            using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, extn))
             {
                 if (existingUploadFile != null)
                 {
@@ -201,8 +202,7 @@ namespace NuGetGallery
                 try
                 {
                     packageArchiveReader = CreatePackage(uploadStream);
-                    string fileExtension = Path.GetExtension(uploadFile.FileName);
-                    IsNugetPackage = fileExtension.Equals(".nupkg", StringComparison.OrdinalIgnoreCase);
+                    IsNugetPackage = extn.Equals(Constants.NuGetPackageFileExtension, StringComparison.OrdinalIgnoreCase);
                     if (IsNugetPackage)
                         _packageService.EnsureValid(packageArchiveReader);
                     else
@@ -309,6 +309,7 @@ namespace NuGetGallery
         {
             return !Path.GetExtension(fileName).Equals(Constants.VsixPackageFileExtension, StringComparison.OrdinalIgnoreCase) &&
                             !Path.GetExtension(fileName).Equals(Constants.MsiPackageFileExtension, StringComparison.OrdinalIgnoreCase) &&
+                            !Path.GetExtension(fileName).Equals(Constants.NuGetPackageFileExtension, StringComparison.OrdinalIgnoreCase) &&
                             !Path.GetExtension(fileName).Equals(Constants.ExePackageFileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -985,6 +986,7 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
             PackageMetadata packageMetadata;
+            PackageArchiveReader package = null;
             using (Stream uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
                 if (uploadFile == null)
@@ -995,8 +997,22 @@ namespace NuGetGallery
                 try
                 {
                     FileStream fs = uploadFile as FileStream;
-                    var nuspecAdapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name));
-                    packageMetadata = nuspecAdapter.Metadata(fs);
+                    var IsNuPkg = Path.GetExtension(fs.Name).Equals(Constants.NuGetPackageFileExtension, StringComparison.OrdinalIgnoreCase);
+                    if (IsNuPkg)
+                    {
+                        package = await SafeCreatePackage(currentUser, uploadFile);
+                        if (package == null)
+                        {
+                            return Redirect(Url.UploadPackage());
+                        }
+                        packageMetadata = PackageMetadata.FromNuspecReader(package.GetNuspecReader());
+                    }
+                    else
+                    {
+
+                        var nuspecAdapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name));
+                        packageMetadata = nuspecAdapter.Metadata(fs);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1045,8 +1061,10 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
 
-            Package package;
-            string uploadFileName;
+            Package package = null;
+            PackageMetadata packageMetadata = null;
+            PackageArchiveReader nugetPackage = null;
+            string uploadFileName = null;
             using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
                 if (uploadFile == null)
@@ -1054,19 +1072,27 @@ namespace NuGetGallery
                     TempData["Message"] = "Your attempt to verify the package submission failed, because we could not find the uploaded package file. Please try again.";
                     return new RedirectResult(Url.UploadPackage());
                 }
-
-                //var nugetPackage = await SafeCreatePackage(currentUser, uploadFile);
-                //if (nugetPackage == null)
-                //{
-                //    // Send the user back
-                //    return new RedirectResult(Url.UploadPackage());
-                //}
-                //Debug.Assert(nugetPackage != null);
-
                 FileStream fs = uploadFile as FileStream;
                 uploadFileName = fs.Name;
-                var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name))
-                    .Metadata(fs);
+                var IsNupkg = Path.GetExtension((uploadFile as FileStream).Name).Equals(Constants.NuGetPackageFileExtension, StringComparison.OrdinalIgnoreCase);
+
+                if (IsNupkg)
+                {
+                    nugetPackage = await SafeCreatePackage(currentUser, uploadFile);
+                    if (nugetPackage == null)
+                    {
+                        // Send the user back
+                        return new RedirectResult(Url.UploadPackage());
+                    }
+                    Debug.Assert(nugetPackage != null);
+                    packageMetadata = PackageMetadata.FromNuspecReader(nugetPackage.GetNuspecReader());
+
+                }
+                else
+                {
+                    packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name))
+                        .Metadata(fs);
+                }
 
                 // Rule out problem scenario with multiple tabs - verification request (possibly with edits) was submitted by user
                 // viewing a different package to what was actually most recently uploaded
@@ -1107,9 +1133,7 @@ namespace NuGetGallery
                 // update relevant database tables
                 try
                 {
-                    //SOUNDAR : The nugetPackage argument is not at all used inside the package service for creating package. Instead of changing the entire hierarchy
-                    // at 3:41 AM in the morning , i prefer a null to be much more efficient. 
-                    package = await _packageService.CreatePackageAsync(packageMetadata, /*nugetPackage*/ null, packageStreamMetadata, currentUser, commitChanges: false);
+                    package = await _packageService.CreatePackageAsync(packageMetadata, nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
                     Debug.Assert(package.PackageRegistration != null);
                 }
                 catch (EntityException ex)
@@ -1131,7 +1155,7 @@ namespace NuGetGallery
                     await _packageService.MarkPackageUnlistedAsync(package, commitChanges: false);
                 }
 
-                await _autoCuratedPackageCmd.ExecuteAsync(package, /*nugetPackage*/ null, commitChanges: false);
+                await _autoCuratedPackageCmd.ExecuteAsync(package, nugetPackage, commitChanges: false);
 
                 // save package to blob storage
                 uploadFile.Position = 0;
