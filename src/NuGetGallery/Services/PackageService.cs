@@ -10,6 +10,7 @@ using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Versioning;
 using NuGetGallery.Packaging;
+using System.IO;
 
 namespace NuGetGallery
 {
@@ -48,6 +49,25 @@ namespace NuGetGallery
             {
                 ValidateSupportedFrameworks(supportedFrameworks);
             }
+        }
+
+        public void EnsureValid(FileStream fileStream)
+        {
+            var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fileStream.Name)).Metadata(fileStream);
+
+            ValidateNuGetPackageMetadata(packageMetadata);
+
+            ValidatePackageTitle(packageMetadata);
+
+	    //SOUNDAR : Supported Frameworks is suppose to be the allowed Atmel Studio 7.0 versions. 
+	    //For now we cannot gather these info for MSI and EXE's and skip the validation. Probably if we use a Combo Box
+	    //in the UI, then the user will be selecting a valid value, and a need for a validation like the one below perhpaps
+	    //may not be needed. 
+            //var supportedFrameworks = GetSupportedFrameworks(packageArchiveReader).Select(fn => fn.ToShortNameOrNull()).ToArray();
+            //if (!supportedFrameworks.AnySafe(sf => sf == null))
+            //{
+            //    ValidateSupportedFrameworks(supportedFrameworks);
+            //}
         }
 
         public async Task<Package> CreatePackageAsync(PackageMetadata packageMetadata, PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true)

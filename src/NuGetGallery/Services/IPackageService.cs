@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using NuGet.Packaging;
 using NuGetGallery.Packaging;
+using System.IO;
 
 namespace NuGetGallery
 {
@@ -44,5 +45,6 @@ namespace NuGetGallery
         Task SetLicenseReportVisibilityAsync(Package package, bool visible, bool commitChanges = true);
 
         void EnsureValid(PackageArchiveReader packageArchiveReader);
+        void EnsureValid(FileStream fileStream);
     }
 }
