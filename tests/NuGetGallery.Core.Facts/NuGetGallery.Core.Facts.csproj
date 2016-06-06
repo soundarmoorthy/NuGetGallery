@@ -88,7 +88,7 @@
     </Reference>
     <Reference Include="NuGet.Logging, Version=3.4.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\NuGet.Logging.3.4.0-beta-632\lib\net45\NuGet.Logging.dll</HintPath>
+      <HintPath>..\..\packages\NuGet.Logging.3.4.4-rc\lib\net45\NuGet.Logging.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="NuGet.Packaging">
