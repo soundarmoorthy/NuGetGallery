@@ -15,11 +15,6 @@ namespace NuGetGallery.Packaging
         private readonly IReadOnlyCollection<PackageDependencyGroup> _dependencyGroups;
         private readonly IReadOnlyCollection<FrameworkSpecificGroup> _frameworkReferenceGroups;
 
-	internal PackageMetadata()
-        {
-
-        }
-
         public PackageMetadata(
             Dictionary<string, string> metadata,
             IEnumerable<PackageDependencyGroup> dependencyGroups, 
