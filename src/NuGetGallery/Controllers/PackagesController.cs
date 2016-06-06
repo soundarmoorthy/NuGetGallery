@@ -156,13 +156,14 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
 
-            using (var stream = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
-                if (stream != null)
+                if (existingUploadFile != null)
                 {
                     return RedirectToRoute(RouteName.VerifyPackage);
                 }
             }
+
             return View();
         }
 
@@ -173,11 +174,9 @@ namespace NuGetGallery
         public virtual async Task<ActionResult> UploadPackage(HttpPostedFileBase uploadFile)
         {
             var currentUser = GetCurrentUser();
-	    //SOUNDAR : This is a serious hack to currently fixup BuildFileName function in UploadFileService
-	    //To fix this properly we need to change a lot of API.
-            Constants.CurrentPackageExtension = Path.GetExtension(uploadFile.FileName);
+            var fileExtension = Path.GetExtension(uploadFile.FileName);
             PackageRegistrationInfo info;
-            using (var stream = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var stream = await _uploadFileService.GetUploadFileAsync(currentUser.Key, Path.GetExtension(uploadFile.FileName)))
             {
                 if (stream != null)
                 {
@@ -220,7 +219,7 @@ namespace NuGetGallery
                 return View();
             }
 
-            await _uploadFileService.SaveUploadFileAsync(currentUser.Key, uploadFile.InputStream);
+            await _uploadFileService.SaveUploadFileAsync(currentUser.Key, uploadFile.InputStream, Path.GetExtension(uploadFile.FileName));
 
             return RedirectToRoute(RouteName.VerifyPackage);
         }
@@ -977,6 +976,7 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
 
             Package package;
+            string uploadFileName;
             using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
                 if (uploadFile == null)
@@ -994,6 +994,7 @@ namespace NuGetGallery
                 //Debug.Assert(nugetPackage != null);
 
                 FileStream fs = uploadFile as FileStream;
+                uploadFileName = fs.Name;
                 var packageMetadata = NuspecProtocolAdapterFactory.Create(Path.GetExtension(fs.Name))
                     .Metadata(fs);
 
@@ -1079,7 +1080,7 @@ namespace NuGetGallery
             }
 
             // delete the uploaded binary in the Uploads container
-            await _uploadFileService.DeleteUploadFileAsync(currentUser.Key);
+            await _uploadFileService.DeleteUploadFileAsync(currentUser.Key, Path.GetExtension(uploadFileName));
 
             TempData["Message"] = String.Format(
                 CultureInfo.CurrentCulture, Strings.SuccessfullyUploadedPackage, package.PackageRegistration.Id, package.Version);

@@ -8,9 +8,12 @@ namespace NuGetGallery
     public interface IUploadFileService
     {
         Task DeleteUploadFileAsync(int userKey);
+        Task DeleteUploadFileAsync(int userKey, string extension);
 
         Task<Stream> GetUploadFileAsync(int userKey);
+        Task<Stream> GetUploadFileAsync(int userKey, string fileExtension);
 
         Task SaveUploadFileAsync(int userKey, Stream packageFileStream);
+        Task SaveUploadFileAsync(int userKey, Stream packageFileStream, string extension);
     }
 }
