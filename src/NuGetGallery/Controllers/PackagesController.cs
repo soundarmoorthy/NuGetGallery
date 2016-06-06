@@ -194,10 +194,83 @@ namespace NuGetGallery
                 return View();
             }
 
+            PackageArchiveReader packageArchiveReader;
+            bool IsNugetPackage = false;
+            using (var uploadStream = uploadFile.InputStream)
+            {
+                try
+                {
+                    packageArchiveReader = CreatePackage(uploadStream);
+                    string fileExtension = Path.GetExtension(uploadFile.FileName);
+                    IsNugetPackage = fileExtension.Equals(".nupkg", StringComparison.OrdinalIgnoreCase);
+                    if (IsNugetPackage)
+                        _packageService.EnsureValid(packageArchiveReader);
+                    else
+                        _packageService.EnsureValid(uploadStream as FileStream);
+                }
+                catch (InvalidPackageException ipex)
+                {
+                    ipex.Log();
+                    ModelState.AddModelError(String.Empty, ipex.Message);
+                    return View();
+                }
+                catch (InvalidDataException idex)
+                {
+                    idex.Log();
+                    ModelState.AddModelError(String.Empty, idex.Message);
+                    return View();
+                }
+                catch (EntityException enex)
+                {
+                    enex.Log();
+                    ModelState.AddModelError(String.Empty, enex.Message);
+                    return View();
+                }
+                catch (Exception ex)
+                {
+                    ex.Log();
+                    ModelState.AddModelError(String.Empty, Strings.FailedToReadUploadFile);
+                    return View();
+                }
+                finally
+                {
+                    _cacheService.RemoveProgress(currentUser.Username);
+                }
+            }
 
-            _cacheService.RemoveProgress(currentUser.Username);
+            PackageRegistrationInfo info = null;
+            if (IsNugetPackage)
+            {
+                NuspecReader nuspec;
+                var errors = ManifestValidator.Validate(packageArchiveReader.GetNuspec(), out nuspec).ToArray();
+                if (errors.Length > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        ModelState.AddModelError(String.Empty, error.ErrorMessage);
+                    }
+                    return View();
+                }
 
-            var info = ConstructRegistrationInfo(uploadFile);
+                // Check min client version
+                if (nuspec.GetMinClientVersion() > Constants.MaxSupportedMinClientVersion)
+                {
+                    ModelState.AddModelError(
+                    string.Empty,
+                    string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.UploadPackage_MinClientVersionOutOfRange,
+                    nuspec.GetMinClientVersion()));
+                    return View();
+                }
+                var pr = _packageService.FindPackageRegistrationById(nuspec.GetId());
+		info = new PackageRegistrationInfo(nuspec.GetId(), nuspec.GetVersion().ToString());
+            }
+            else
+            {
+                info = ConstructRegistrationInfo(uploadFile);
+            }
+
             var packageRegistration = _packageService.FindPackageRegistrationById(info.Id);
             if (packageRegistration != null && !packageRegistration.Owners.AnySafe(x => x.Key == currentUser.Key))
             {
@@ -223,14 +296,14 @@ namespace NuGetGallery
 
         private static PackageRegistrationInfo ConstructRegistrationInfo(HttpPostedFileBase uploadFile)
         {
-            PackageRegistrationInfo info;
-            var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(uploadFile.FileName));
-            var fn = Path.GetTempFileName();
-            uploadFile.SaveAs(fn);
-            info = adapter.ConstructRegistrationInfo(fn);
-            System.IO.File.Delete(fn);
-            return info;
+                var adapter = NuspecProtocolAdapterFactory.Create(Path.GetExtension(uploadFile.FileName));
+                var fn = Path.GetTempFileName();
+                uploadFile.SaveAs(fn);
+                var info = adapter.ConstructRegistrationInfo(fn);
+                System.IO.File.Delete(fn);
+                return info;
         }
+
 
         private static bool IsInvalidFile(string fileName)
         {
@@ -912,7 +985,7 @@ namespace NuGetGallery
         {
             var currentUser = GetCurrentUser();
             PackageMetadata packageMetadata;
-            using ( var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (Stream uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
                 if (uploadFile == null)
                 {
@@ -1034,8 +1107,8 @@ namespace NuGetGallery
                 // update relevant database tables
                 try
                 {
-		//SOUNDAR : The nugetPackage argument is not at all used inside the package service for creating package. Instead of changing the entire hierarchy
-		// at 3:41 AM in the morning , i prefer a null to be much more efficient. 
+                    //SOUNDAR : The nugetPackage argument is not at all used inside the package service for creating package. Instead of changing the entire hierarchy
+                    // at 3:41 AM in the morning , i prefer a null to be much more efficient. 
                     package = await _packageService.CreatePackageAsync(packageMetadata, /*nugetPackage*/ null, packageStreamMetadata, currentUser, commitChanges: false);
                     Debug.Assert(package.PackageRegistration != null);
                 }
