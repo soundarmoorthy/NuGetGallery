@@ -275,11 +275,9 @@ namespace NuGetGallery
                             Size = packageStream.Length,
                         };
 
-//SOUNDAR : null is passed as first argument to CreatePackageAsync. This is sin, but to err is soundar. :-)
-
                         var package =
                             await
-                                PackageService.CreatePackageAsync(null, packageToPush, packageStreamMetadata, user,
+                                PackageService.CreatePackageAsync(packageToPush, packageStreamMetadata, user,
                                     commitChanges: false);
                         await AutoCuratePackage.ExecuteAsync(package, packageToPush, commitChanges: false);
                         await EntitiesContext.SaveChangesAsync();
