@@ -29,6 +29,20 @@ namespace NuGetGallery
         /// <param name="user">The owner of the package</param>
         /// <param name="commitChanges">Specifies whether to commit the changes to database.</param>
         /// <returns>The created package entity.</returns>
+        Task<Package> CreatePackageAsync(PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true);
+
+        /// <summary>
+        /// Populate the related database tables to create the specified package for the specified user.
+        /// </summary>
+        /// <remarks>
+        /// This method doesn't upload the package binary to the blob storage. The caller must do it after this call.
+        /// </remarks>
+	/// <param name="packageMetadata">The package metadata is used to populate data about the packages that are not nuget packages</param>
+        /// <param name="nugetPackage">The package to be created.</param>
+        /// <param name="packageStreamMetadata">The package stream's metadata.</param>
+        /// <param name="user">The owner of the package</param>
+        /// <param name="commitChanges">Specifies whether to commit the changes to database.</param>
+        /// <returns>The created package entity.</returns>
         Task<Package> CreatePackageAsync(PackageMetadata packageMetadata, PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true);
 
         Task PublishPackageAsync(string id, string version, bool commitChanges = true);

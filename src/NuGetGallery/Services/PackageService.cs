@@ -70,7 +70,19 @@ namespace NuGetGallery
             //}
         }
 
+        public async Task<Package> CreatePackageAsync(PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true)
+        {
+	    var packageMetadata = PackageMetadata.FromNuspecReader(nugetPackage.GetNuspecReader());
+            return await CreatePackageAsyncInternal(packageMetadata, nugetPackage, packageStreamMetadata, user, commitChanges);
+
+        }
+
         public async Task<Package> CreatePackageAsync(PackageMetadata packageMetadata, PackageArchiveReader nugetPackage, PackageStreamMetadata packageStreamMetadata, User user, bool commitChanges = true)
+        {
+            return await CreatePackageAsyncInternal(packageMetadata, nugetPackage, packageStreamMetadata, user, commitChanges);
+        }
+
+	private async Task<Package> CreatePackageAsyncInternal(PackageMetadata packageMetadata, PackageArchiveReader reader,PackageStreamMetadata packageStreamMetadata, User user,bool commitChanges = true)
         {
             ValidateNuGetPackageMetadata(packageMetadata);
 
