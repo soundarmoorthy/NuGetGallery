@@ -371,8 +371,10 @@ namespace NuGetGallery.Packaging
         public void ReturnsErrorIfVersionIsSemVer200()
         {
             var nuspecStream = CreateNuspecStream(NuSpecSemVer200);
+            var expected = new[] { String.Format(Strings.Manifest_InvalidVersionSemVer200, "2.0.0") };
+            var actual = GetErrors(nuspecStream);
 
-            Assert.Equal(new[] { String.Format(Strings.Manifest_InvalidVersionSemVer200, "2.0.0+123") }, GetErrors(nuspecStream));
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
@@ -427,10 +429,11 @@ namespace NuGetGallery.Packaging
         {
             NuspecReader reader;
 
-            return ManifestValidator
+            var errors = ManifestValidator
                 .Validate(nuspecStream, out reader)
                 .Select(r => r.ErrorMessage)
                 .ToArray();
+            return errors;
         }
 
         private Stream CreateNuspecStream(string nuspec)

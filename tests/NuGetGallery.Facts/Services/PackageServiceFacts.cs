@@ -271,7 +271,7 @@ namespace NuGetGallery
                 var nugetPackage = CreateNuGetPackage();
                 var currentUser = new User();
 
-                service.CreatePackageAsync(null ,nugetPackage.Object, new PackageStreamMetadata(), currentUser);
+                service.CreatePackageAsync(nugetPackage.Object, new PackageStreamMetadata(), currentUser);
 
                 packageRegistrationRepository.Verify(x => x.InsertOnCommit(It.Is<PackageRegistration>(pr => pr.Id == "theId")));
                 packageRegistrationRepository.Verify(x => x.CommitChangesAsync());

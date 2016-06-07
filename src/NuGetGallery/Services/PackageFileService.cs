@@ -111,7 +111,7 @@ namespace NuGetGallery
                 Constants.PackageFileSavePathTemplate,
                 id.ToLowerInvariant(),
                 version.ToLowerInvariant(),
-                Constants.VsixPackageFileExtension);
+                Constants.NuGetPackageFileExtension);
         }
 
         private static string BuildFileName(Package package)
@@ -160,7 +160,7 @@ namespace NuGetGallery
                 id,
                 version,
                 HttpServerUtility.UrlTokenEncode(hashBytes),
-                Constants.VsixPackageFileExtension);
+                Constants.NuGetPackageFileExtension);
         }
     }
 }

@@ -150,7 +150,8 @@ namespace NuGetGallery
 
         public static Stream CreateTestPackageStream(Action<ZipArchive> populatePackage)
         {
-            var packageStream = new MemoryStream();
+            var fileName = Path.Combine(Path.GetTempPath(), Path.GetTempFileName() + Constants.NuGetPackageFileExtension);
+            var packageStream = File.Create(fileName);
             using (var packageArchive = new ZipArchive(packageStream, ZipArchiveMode.Create, true))
             {
                 if (populatePackage != null)

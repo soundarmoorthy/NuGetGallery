@@ -174,7 +174,9 @@ namespace NuGetGallery
         public virtual async Task<ActionResult> UploadPackage(HttpPostedFileBase uploadFile)
         {
             var currentUser = GetCurrentUser();
-            var extn = Path.GetExtension(uploadFile.FileName);
+            string extn = Constants.NuGetPackageFileExtension;
+            if (uploadFile != null)
+                extn = Path.GetExtension(uploadFile.FileName);
             using (var existingUploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, extn))
             {
                 if (existingUploadFile != null)
@@ -197,6 +199,7 @@ namespace NuGetGallery
 
             PackageArchiveReader packageArchiveReader;
             bool IsNugetPackage = false;
+            PackageRegistrationInfo info = null;
             using (var uploadStream = uploadFile.InputStream)
             {
                 try
@@ -236,39 +239,38 @@ namespace NuGetGallery
                 {
                     _cacheService.RemoveProgress(currentUser.Username);
                 }
-            }
 
-            PackageRegistrationInfo info = null;
-            if (IsNugetPackage)
-            {
-                NuspecReader nuspec;
-                var errors = ManifestValidator.Validate(packageArchiveReader.GetNuspec(), out nuspec).ToArray();
-                if (errors.Length > 0)
+                if (IsNugetPackage)
                 {
-                    foreach (var error in errors)
+                    NuspecReader nuspec;
+                    var errors = ManifestValidator.Validate(packageArchiveReader.GetNuspec(), out nuspec).ToArray();
+                    if (errors.Length > 0)
                     {
-                        ModelState.AddModelError(String.Empty, error.ErrorMessage);
+                        foreach (var error in errors)
+                        {
+                            ModelState.AddModelError(String.Empty, error.ErrorMessage);
+                        }
+                        return View();
                     }
-                    return View();
-                }
 
-                // Check min client version
-                if (nuspec.GetMinClientVersion() > Constants.MaxSupportedMinClientVersion)
-                {
-                    ModelState.AddModelError(
-                    string.Empty,
-                    string.Format(
-                    CultureInfo.CurrentCulture,
-                    Strings.UploadPackage_MinClientVersionOutOfRange,
-                    nuspec.GetMinClientVersion()));
-                    return View();
+                    // Check min client version
+                    if (nuspec.GetMinClientVersion() > Constants.MaxSupportedMinClientVersion)
+                    {
+                        ModelState.AddModelError(
+                        string.Empty,
+                        string.Format(
+                        CultureInfo.CurrentCulture,
+                        Strings.UploadPackage_MinClientVersionOutOfRange,
+                        nuspec.GetMinClientVersion()));
+                        return View();
+                    }
+                    var pr = _packageService.FindPackageRegistrationById(nuspec.GetId());
+                    info = new PackageRegistrationInfo(nuspec.GetId(), nuspec.GetVersion().ToString());
                 }
-                var pr = _packageService.FindPackageRegistrationById(nuspec.GetId());
-		info = new PackageRegistrationInfo(nuspec.GetId(), nuspec.GetVersion().ToString());
-            }
-            else
-            {
-                info = ConstructRegistrationInfo(uploadFile);
+                else
+                {
+                    info = ConstructRegistrationInfo(uploadFile);
+                }
             }
 
             var packageRegistration = _packageService.FindPackageRegistrationById(info.Id);
@@ -987,6 +989,7 @@ namespace NuGetGallery
             var currentUser = GetCurrentUser();
             PackageMetadata packageMetadata;
             PackageArchiveReader package = null;
+            string fileType = Constants.NuGetPackageFileExtension;
             using (Stream uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
             {
                 if (uploadFile == null)
@@ -1033,6 +1036,7 @@ namespace NuGetGallery
                 Dependencies = new DependencySetsViewModel(
                     packageMetadata.GetDependencyGroups().AsPackageDependencyEnumerable()),
                 DevelopmentDependency = packageMetadata.GetValueFromMetadata("developmentDependency"),
+                FileType = fileType,
                 Edit = new EditPackageVersionRequest
                 {
                     Authors = packageMetadata.Authors.Flatten(),
@@ -1065,7 +1069,7 @@ namespace NuGetGallery
             PackageMetadata packageMetadata = null;
             PackageArchiveReader nugetPackage = null;
             string uploadFileName = null;
-            using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key))
+            using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, formData.FileType))
             {
                 if (uploadFile == null)
                 {
@@ -1133,7 +1137,10 @@ namespace NuGetGallery
                 // update relevant database tables
                 try
                 {
-                    package = await _packageService.CreatePackageAsync(packageMetadata, nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
+                    if (IsNupkg)
+                        package = await _packageService.CreatePackageAsync(nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
+                    else
+                        package = await _packageService.CreatePackageAsync(packageMetadata, nugetPackage, packageStreamMetadata, currentUser, commitChanges: false);
                     Debug.Assert(package.PackageRegistration != null);
                 }
                 catch (EntityException ex)
