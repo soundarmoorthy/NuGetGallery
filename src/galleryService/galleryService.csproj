@@ -81,6 +81,7 @@
     <Compile Include="Models\Project.cs" />
     <Compile Include="Models\Release.cs" />
     <Compile Include="Models\StarRating.cs" />
+    <Compile Include="OrderByEnum.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
