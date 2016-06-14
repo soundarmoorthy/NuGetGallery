@@ -90,7 +90,7 @@ namespace NuGetGallery
 
             var packageRegistration = CreateOrGetPackageRegistration(user, packageMetadata);
 
-            var package = CreatePackageFromNuGetPackage(packageRegistration, packageMetadata, packageStreamMetadata, user);
+            var package = CreatePackageFromNuGetPackage(packageRegistration, reader, packageMetadata, packageStreamMetadata, user);
             packageRegistration.Packages.Add(package);
             await UpdateIsLatestAsync(packageRegistration, false);
 
@@ -437,7 +437,7 @@ namespace NuGetGallery
             return packageRegistration;
         }
 
-        private static Package CreatePackageFromNuGetPackage(PackageRegistration packageRegistration, PackageMetadata packageMetadata, PackageStreamMetadata packageStreamMetadata, User user)
+        private Package CreatePackageFromNuGetPackage(PackageRegistration packageRegistration, PackageArchiveReader reader, PackageMetadata packageMetadata, PackageStreamMetadata packageStreamMetadata, User user)
         {
             var package = packageRegistration.Packages.SingleOrDefault(pv => pv.Version == packageMetadata.Version.ToString());
 
@@ -484,20 +484,16 @@ namespace NuGetGallery
             }
 #pragma warning restore 618
 
-//Soundar : For any vsix we add, net45 is probably the apt value. This field in the future should be used for specifiying 
-// the different shell versions that can be used.
-                    package.SupportedFrameworks.Add(new PackageFramework { TargetFramework = "net45" });
-			//SOUNDAR : I hate this code, but not sure why now.
-            //var supportedFrameworks = GetSupportedFrameworks(nugetPackage).Select(fn => fn.ToShortNameOrNull()).ToArray();
-            //if (!supportedFrameworks.AnySafe(sf => sf == null))
-            //{
-            //    ValidateSupportedFrameworks(supportedFrameworks);
+            var supportedFrameworks = GetSupportedFrameworks(reader).Select(fn => fn.ToShortNameOrNull()).ToArray();
+            if (!supportedFrameworks.AnySafe(sf => sf == null))
+            {
+                ValidateSupportedFrameworks(supportedFrameworks);
 
-            //    foreach (var supportedFramework in supportedFrameworks)
-            //    {
-            //        package.SupportedFrameworks.Add(new PackageFramework { TargetFramework = supportedFramework });
-            //    }
-            //}
+                foreach (var supportedFramework in supportedFrameworks)
+                {
+                    package.SupportedFrameworks.Add(new PackageFramework { TargetFramework = supportedFramework });
+                }
+            }
 
             package.Dependencies = packageMetadata
                 .GetDependencyGroups()

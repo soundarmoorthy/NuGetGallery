@@ -1069,7 +1069,7 @@ namespace NuGetGallery
             PackageMetadata packageMetadata = null;
             PackageArchiveReader nugetPackage = null;
             string uploadFileName = null;
-            using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, formData.FileType))
+            using (var uploadFile = await _uploadFileService.GetUploadFileAsync(currentUser.Key, formData.FileType ?? Constants.NuGetPackageFileExtension))
             {
                 if (uploadFile == null)
                 {
