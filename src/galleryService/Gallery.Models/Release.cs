@@ -21,6 +21,8 @@ namespace Studio.Gallery.Model
         {
             Ratings.Add(new ReleaseRating(this, rating));
         }
+        public string category { get; set; }
+
 
         public Release()
         {

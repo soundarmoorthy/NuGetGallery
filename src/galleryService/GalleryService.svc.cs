@@ -14,10 +14,12 @@ using NuGet;
 namespace Studio.Gallery
 {
     [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Allowed)]
+    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Single)]
     public class GalleryService : IVsIdeService 
     {
         public GalleryService()
         {
+            configureCategories();
         }
         public IdeCategory GetCategoryTree(
             Guid categoryId,
@@ -47,13 +49,7 @@ namespace Studio.Gallery
             return null;
         }
 
-        public IdeCategory[] GetRootCategories(string cultureName)
-        {
-            return new[]
-                   {
-                       new IdeCategory { Title = "ToolChain" }, new IdeCategory {Title="Debugging"},new IdeCategory {Title = "Wireless"}
-                   };
-        }
+       
 
         public Task<IdeCategory[]> GetRootCategoriesAsync(string cultureName)
         {
@@ -86,9 +82,55 @@ namespace Studio.Gallery
             return null;
         }
 
+        public IdeCategory[] GetRootCategories(string cultureName)
+        {
+            return GetAllRootCategories();
+        }
+        ExtensionCategories categories = new ExtensionCategories();
+
+        private void configureCategories()
+        {
+            Guid root = new Guid();
+            Guid idStudioGallery = categories.Add("Atmel Studio Gallery", "Atmel Studio Gallery", root);
+            categories.Add("ASF", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("Debugging", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("Development", "Atmel Studio Gallery", idStudioGallery);
+            Guid idDevice = categories.Add("Device", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("ARM", "Device", idDevice);
+            categories.Add("AVR", "Device", idDevice);
+
+            categories.Add("Projects", "Atmel Studio Gallery", idStudioGallery);
+
+            Guid idTC = categories.Add("Toolchain", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("GCC", "Toolchain", idTC);
+            categories.Add("IAR", "Toolchain", idTC);
+
+            Guid idTools = categories.Add("Tools", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("Debuggers", "Tools", idTools);
+            categories.Add("Kits", "Tools", idTools);
+            categories.Add("Programmers", "Tools", idTools);
+            categories.Add("Simulator", "Tools", idTools);
+
+            Guid idTraining = categories.Add("Training", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("Atmel Training", "Training", idTraining);
+
+            Guid idUtils = categories.Add("Utilities", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("USB Driver", "Utilities", idUtils);
+
+            categories.Add("Verification", "Atmel Studio Gallery", idStudioGallery);
+            categories.Add("Wireless", "Atmel Studio Gallery", idStudioGallery);
+
+
+        }
+        public IdeCategory[] GetAllRootCategories()
+        {
+            return categories.getRootCategories();
+        }
         public IdeCategory GetCategoryTree2(Guid categoryId, int level, Dictionary<string, string> requestContext)
         {
-            return null;
+            if (categoryId == new Guid())
+                return new IdeCategory() { Title = "All"};
+            return categories.getCategory(categoryId);
         }
 
         public Task<IdeCategory> GetCategoryTree2Async(Guid categoryId, int level, Dictionary<string, string> requestContext)
@@ -139,7 +181,7 @@ namespace Studio.Gallery
                 release.Project = new Studio.Gallery.Model.Project();
                 release.Reviews = new List<Studio.Gallery.Model.Review>();
                 release.Ratings = new List<Studio.Gallery.Model.ReleaseRating>();
-
+                release.category = package.Tags;
                 release.Project.Id = 0;
                 release.Project.Description = package.Description;
                 release.Project.Title = package.Title;
@@ -153,7 +195,6 @@ namespace Studio.Gallery
                 release.Extension.VsixVersion = package.Version.ToString();
                 release.Extension.Name = package.Title;
                 release.Extension.MoreInfo = package.Description;
-
                 releases.Add(release);
             }
             IEnumerable<Model.Release> orderedReleases = null;
@@ -174,7 +215,7 @@ namespace Studio.Gallery
                     orderedReleases = releases.OrderBy(r => r.DownloadCount);
                 }
             }
-            else if (orderby == OrderByEnum.Rating || orderby == OrderByEnum.Ranking)
+            else if (orderby == OrderByEnum.Rating )
             {
                 if (getOrderByDirection(orderByClause) == OrderByDirection.Desc)
                 {
@@ -183,6 +224,17 @@ namespace Studio.Gallery
                 else
                 {
                     orderedReleases = releases.OrderBy(r => r.GetAverageRating());
+                }
+            }
+            else if (orderby == OrderByEnum.Ranking)
+            {
+                if (getOrderByDirection(orderByClause) == OrderByDirection.Desc)
+                {
+                    orderedReleases = releases.OrderByDescending(r => r.category);
+                }
+                else
+                {
+                    orderedReleases = releases.OrderBy(r => r.category);
                 }
             }
             else if (orderby == OrderByEnum.Name)

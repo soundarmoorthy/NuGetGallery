@@ -70,6 +70,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extension.cs" />
+    <Compile Include="ExtensionCategories.cs" />
     <Compile Include="Gallery.Models\Extension.cs" />
     <Compile Include="Gallery.Models\Project.cs" />
     <Compile Include="Gallery.Models\Release.cs" />
